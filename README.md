@@ -34,10 +34,7 @@ This project is a dashboard for analyzing village data (Macro and Micro views), 
     # OR if there is a specific backend requirements
     pip install -r requirements.txt
     ```
-5.  Set up environment variables:
-    - Copy `.env.example` to `.env`.
-    - Fill in your `GEMINI_API_KEY`.
-6.  Run the server:
+5.  Run the server:
     ```bash
     uvicorn main:app --reload
     ```
