@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
-import { MapContainer, TileLayer, CircleMarker, Popup, useMap, useMapEvents, Tooltip as LeafletTooltip } from 'react-leaflet';
+import { MapContainer, TileLayer, CircleMarker, Popup, useMap, useMapEvents, Tooltip as LeafletTooltip, GeoJSON } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import VillageSearch from '../components/VillageSearch';
 import {
@@ -17,6 +17,17 @@ import { twMerge } from 'tailwind-merge';
 function cn(...inputs) {
     return twMerge(clsx(inputs));
 }
+
+// --- Component: Map Auto Center ---
+const AutoPan = ({ coords }) => {
+    const map = useMap();
+    useEffect(() => {
+        if (coords) {
+            map.flyTo([coords.lat, coords.lng], 14, { animate: true, duration: 1.5 });
+        }
+    }, [coords, map]);
+    return null;
+};
 
 // --- Component: Stat Card ---
 const StatCard = ({ title, value, label, icon: Icon, trend, color, delay, details = [] }) => (
@@ -84,8 +95,13 @@ const LocationSetter = ({ onLocationSet }) => {
     return null;
 };
 
+// Global cache to prevent redownloading 1.6MB every switch
+let cachedBoundaries = null;
+
 const MacroDashboard = ({ onSelectVillage, userLocation, onManualUpdate }) => {
     const [villages, setVillages] = useState([]);
+    const [boundaries, setBoundaries] = useState(cachedBoundaries);
+    const [showBoundaries, setShowBoundaries] = useState(true);
     const [loading, setLoading] = useState(true);
     const [lens, setLens] = useState('risk'); // 'risk' | 'digital' | 'economy'
 
@@ -93,8 +109,22 @@ const MacroDashboard = ({ onSelectVillage, userLocation, onManualUpdate }) => {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const res = await axios.get('http://localhost:8000/api/macro');
-                setVillages(res.data.data);
+                // If we already have boundaries, just fetch villages
+                if (cachedBoundaries) {
+                    const res = await axios.get('http://localhost:8000/api/macro');
+                    setVillages(res.data.data);
+                    setBoundaries(cachedBoundaries);
+                } else {
+                    const [vRes, bRes] = await Promise.all([
+                        axios.get('http://localhost:8000/api/macro'),
+                        axios.get('http://localhost:8000/api/boundaries').catch(() => ({ data: null }))
+                    ]);
+                    setVillages(vRes.data.data);
+                    if (bRes.data) {
+                        cachedBoundaries = bRes.data;
+                        setBoundaries(bRes.data);
+                    }
+                }
                 setLoading(false);
             } catch (error) {
                 console.error("Failed to fetch macro data:", error);
@@ -206,8 +236,8 @@ const MacroDashboard = ({ onSelectVillage, userLocation, onManualUpdate }) => {
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 px-1">
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-2">Executive Command Center</h1>
-                    <p className="text-gray-500 dark:text-gray-400">Real-time situational awareness across the region.</p>
+                    <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-2">Pusat Komando Eksekutif</h1>
+                    <p className="text-gray-500 dark:text-gray-400">Pemantauan situasi wilayah secara real-time.</p>
                 </div>
                 <div className="w-full md:w-72 z-50">
                     <VillageSearch onSelect={onSelectVillage} initialVillages={villages} />
@@ -217,11 +247,11 @@ const MacroDashboard = ({ onSelectVillage, userLocation, onManualUpdate }) => {
             {/* KPI Ticker */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <StatCard
-                    title="Population at Risk"
+                    title="Populasi Berisiko"
                     value={kpi.popRisk}
-                    label="Vulnerable Citizens"
+                    label="Warga Rentan"
                     icon={HeartPulse}
-                    trend="+2.4%"
+
                     color="bg-red-500"
                     delay="animate-fade-in-up delay-100"
                     details={kpi.popDetails}
@@ -231,7 +261,7 @@ const MacroDashboard = ({ onSelectVillage, userLocation, onManualUpdate }) => {
                     value={`${kpi.connectivity}%`}
                     label="Connected Villages"
                     icon={Signal}
-                    trend="+12%"
+
                     color="bg-blue-500"
                     delay="animate-fade-in-up delay-200"
                     details={kpi.connectDetails}
@@ -241,7 +271,7 @@ const MacroDashboard = ({ onSelectVillage, userLocation, onManualUpdate }) => {
                     value={kpi.economicPower}
                     label="Active Markets & BUMDes"
                     icon={ShoppingBag}
-                    trend="Stable"
+
                     color="bg-emerald-500"
                     delay="animate-fade-in-up delay-300"
                     details={kpi.ecoDetails}
@@ -251,7 +281,7 @@ const MacroDashboard = ({ onSelectVillage, userLocation, onManualUpdate }) => {
                     value={kpi.healthAlert}
                     label="Active Cases (DBD/Malaria)"
                     icon={AlertTriangle}
-                    trend="-5%"
+
                     color="bg-orange-500"
                     delay="animate-fade-in-up delay-400"
                     details={kpi.healthDetails}
@@ -269,7 +299,7 @@ const MacroDashboard = ({ onSelectVillage, userLocation, onManualUpdate }) => {
                                 active={lens === 'risk'}
                                 onClick={() => setLens('risk')}
                                 icon={AlertTriangle}
-                                label="Risk"
+                                label="Risiko"
                                 colorClass="bg-red-500 ring-red-500"
                             />
                             <LensButton
@@ -283,36 +313,53 @@ const MacroDashboard = ({ onSelectVillage, userLocation, onManualUpdate }) => {
                                 active={lens === 'economy'}
                                 onClick={() => setLens('economy')}
                                 icon={ShoppingBag}
-                                label="Economy"
+                                label="Ekonomi"
                                 colorClass="bg-emerald-500 ring-emerald-500"
                             />
                         </div>
 
                         {/* Dynamic Legend */}
                         <div className="bg-white/90 backdrop-blur shadow-md px-4 py-2 rounded-lg text-xs font-medium text-gray-600 flex flex-col gap-1 min-w-[140px]">
-                            <span className="text-[10px] uppercase text-gray-400 font-bold mb-1">Color Legend</span>
+                            <span className="text-[10px] uppercase text-gray-400 font-bold mb-1">Legenda Warna</span>
                             {lens === 'risk' && (
                                 <>
-                                    <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-red-500"></div> High Risk / Cases</div>
-                                    <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-emerald-500"></div> Safe Zone</div>
+                                    <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-red-500"></div> Risiko Tinggi / Kasus</div>
+                                    <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-emerald-500"></div> Zona Aman</div>
                                 </>
                             )}
                             {lens === 'digital' && (
                                 <>
-                                    <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-emerald-500"></div> System Active</div>
-                                    <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-amber-500"></div> No System</div>
+                                    <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-emerald-500"></div> Sistem Aktif</div>
+                                    <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-amber-500"></div> Belum Ada</div>
                                 </>
                             )}
                             {lens === 'economy' && (
                                 <>
-                                    <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-blue-500"></div> Has Market/BUMDes</div>
-                                    <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-gray-400"></div> Undeveloped</div>
+                                    <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-blue-500"></div> Ada Pasar/BUMDes</div>
+                                    <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-gray-400"></div> Tertinggal</div>
                                 </>
                             )}
                         </div>
                     </div>
 
+                    {/* Boundary Toggle - Moved to Bottom Right corner of map container */}
+                    <div className="absolute bottom-6 right-6 z-[2000]">
+                        <button
+                            onClick={() => setShowBoundaries(!showBoundaries)}
+                            className={cn(
+                                "flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-xl border backdrop-blur-sm",
+                                showBoundaries
+                                    ? "bg-slate-800/90 text-white border-transparent"
+                                    : "bg-white/90 text-gray-600 border-gray-200 hover:bg-white"
+                            )}
+                        >
+                            <MapIcon size={14} />
+                            {showBoundaries ? 'Sembunyikan Batas' : 'Tampilkan Batas'}
+                        </button>
+                    </div>
+
                     <MapContainer center={[-7.1, 112.4]} zoom={10} style={{ height: '100%', width: '100%' }}>
+                        <AutoPan coords={userLocation} />
                         <LocationSetter onLocationSet={onManualUpdate} />
                         <TileLayer
                             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -320,6 +367,43 @@ const MacroDashboard = ({ onSelectVillage, userLocation, onManualUpdate }) => {
                         // Optional: Use CartoDB Positron for cleaner look
                         // url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
                         />
+
+                        {/* Village Boundaries */}
+                        {boundaries && showBoundaries && (
+                            <GeoJSON
+                                data={boundaries}
+                                style={{
+                                    color: '#64748b',
+                                    weight: 1,
+                                    fillColor: '#94a3b8',
+                                    fillOpacity: 0.1
+                                }}
+                                eventHandlers={{
+                                    click: (e) => {
+                                        const feature = e.propagatedFrom.feature;
+                                        if (feature && feature.properties?.iddesa) {
+                                            onSelectVillage(feature.properties.iddesa);
+                                        }
+                                    },
+                                    mouseover: (e) => {
+                                        const layer = e.target;
+                                        layer.setStyle({
+                                            fillOpacity: 0.3,
+                                            weight: 2,
+                                            color: '#3B82F6'
+                                        });
+                                    },
+                                    mouseout: (e) => {
+                                        const layer = e.target;
+                                        layer.setStyle({
+                                            fillOpacity: 0.1,
+                                            weight: 1,
+                                            color: '#64748b'
+                                        });
+                                    }
+                                }}
+                            />
+                        )}
 
                         {/* User Location Marker */}
                         {userLocation && (
@@ -330,7 +414,7 @@ const MacroDashboard = ({ onSelectVillage, userLocation, onManualUpdate }) => {
                             >
                                 <Popup>
                                     <div className="text-center">
-                                        <strong className="text-blue-600 block mb-1">You Are Here</strong>
+                                        <strong className="text-blue-600 block mb-1">Anda di Sini</strong>
                                         <div className="text-xs text-gray-600">
                                             Acc: {userLocation.accuracy}m
                                         </div>

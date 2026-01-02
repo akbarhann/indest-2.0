@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Menu, X, Map, BarChart2, Home, Activity, Moon, Sun, Users, Info } from 'lucide-react';
 import clsx from 'clsx'; // Optional, using template literals if not installed, but usually good.
 
-const Layout = ({ children, setView, theme, setTheme }) => {
+const Layout = ({ children, setView, theme, setTheme, locationStatus, onRetryLocation }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [activeTab, setActiveTab] = useState('macro');
 
@@ -57,7 +57,7 @@ const Layout = ({ children, setView, theme, setTheme }) => {
                             }`}
                     >
                         <Map size={20} />
-                        Macro View
+                        Peta Wilayah
                     </button>
 
                     {/* Micro View is typically accessed via map click, but we add a nav item for demo/default */}
@@ -69,7 +69,7 @@ const Layout = ({ children, setView, theme, setTheme }) => {
                             }`}
                     >
                         <Home size={20} />
-                        Micro Details
+                        Detail Desa
                     </button>
 
                     <button
@@ -94,12 +94,44 @@ const Layout = ({ children, setView, theme, setTheme }) => {
                         <span>Tentang Website</span>
                     </button>
 
-                    <div className="pt-8 px-4">
+                    <div className="pt-8 px-4 space-y-4">
                         <div className="bg-gradient-to-br from-risk-med/10 to-risk-high/10 p-4 rounded-xl border border-risk-med/20">
-                            <h3 className="text-sm font-semibold mb-1 text-gray-700 dark:text-gray-200">Status</h3>
+                            <h3 className="text-sm font-semibold mb-1 text-gray-700 dark:text-gray-200">System Status</h3>
                             <div className="flex items-center gap-2 text-xs text-green-700 dark:text-green-400">
                                 <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                                System Online
+                                Online & Terpantau
+                            </div>
+                        </div>
+
+                        {/* Integrated Location Control */}
+                        <div className="bg-gray-50 dark:bg-slate-800/50 p-4 rounded-xl border border-gray-100 dark:border-gray-800">
+                            <div className="flex items-center justify-between mb-2">
+                                <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest text-[10px]">Lokasi Anda</h3>
+                                <button
+                                    onClick={onRetryLocation}
+                                    className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
+                                    title="Ulangi Deteksi Lokasi"
+                                >
+                                    <Activity size={14} className={locationStatus?.status === 'locating' ? 'animate-spin text-blue-500' : 'text-gray-400'} />
+                                </button>
+                            </div>
+                            <div className="space-y-1">
+                                <p className="text-xs font-medium text-gray-700 dark:text-gray-300 truncate">
+                                    {locationStatus?.coords ? `${locationStatus.coords.lat}, ${locationStatus.coords.lng}` : 'Tidak Terdeteksi'}
+                                </p>
+                                <p className="text-[10px] text-gray-400 truncate">
+                                    {locationStatus?.message || 'Siap mendeteksi...'}
+                                </p>
+                                {locationStatus?.accuracy && (
+                                    <div className="mt-2 h-1 w-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                                        <div
+                                            className={clsx("h-full transition-all duration-500",
+                                                locationStatus.accuracy < 50 ? "bg-green-500 w-full" :
+                                                    locationStatus.accuracy < 500 ? "bg-yellow-500 w-3/4" : "bg-red-500 w-1/4"
+                                            )}
+                                        />
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>

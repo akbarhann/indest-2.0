@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
-    MapContainer, TileLayer, Marker, Popup, Tooltip as MapTooltip
+    MapContainer, TileLayer, Marker, Popup, Tooltip as MapTooltip, useMapEvents, CircleMarker, useMap
 } from 'react-leaflet';
 import VillageSearch from '../components/VillageSearch';
 import axios from 'axios';
@@ -23,6 +23,26 @@ const COLORS = {
     secondary: '#F97316',
 };
 
+// --- Component: Map Click Listener ---
+const LocationSetter = ({ onLocationSet }) => {
+    useMapEvents({
+        click(e) {
+            const { lat, lng } = e.latlng;
+            onLocationSet(lat, lng);
+        },
+    });
+    return null;
+};
+
+// --- Component: Map Auto Center ---
+const ChangeView = ({ center }) => {
+    const map = useMap();
+    useEffect(() => {
+        if (center) map.setView(center, 14);
+    }, [center, map]);
+    return null;
+};
+
 const SectionTitle = ({ title, subtitle }) => (
     <div className="mb-6">
         <h2 className="text-xl font-bold text-gray-800">{title}</h2>
@@ -36,7 +56,7 @@ const Card = ({ children, className = "" }) => (
     </div>
 );
 
-const MicroDashboard = ({ villageId, onBack, onSelectVillage }) => {
+const MicroDashboard = ({ villageId, onBack, onSelectVillage, userLocation, onManualUpdate }) => {
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
 
@@ -206,26 +226,59 @@ const MicroDashboard = ({ villageId, onBack, onSelectVillage }) => {
                         </p>
                     </div>
 
-                    <div className="hidden md:block overflow-hidden rounded-xl border border-white/30 shadow-lg w-72 h-32 bg-gray-200 relative group/map">
-                        <iframe
-                            width="100%"
-                            height="100%"
-                            frameBorder="0"
-                            scrolling="no"
-                            marginHeight="0"
-                            marginWidth="0"
-                            src={`https://maps.google.com/maps?q=${data.latitude},${data.longitude}&z=14&output=embed`}
-                            className="w-full h-full opacity-90 hover:opacity-100 transition-opacity"
-                        ></iframe>
+                    <div className="hidden md:block overflow-hidden rounded-xl border border-white/30 shadow-lg w-72 h-40 bg-gray-200 relative group/map">
+                        <MapContainer
+                            center={[data.latitude, data.longitude]}
+                            zoom={14}
+                            zoomControl={false}
+                            className="h-full w-full"
+                        >
+                            <ChangeView center={[data.latitude, data.longitude]} />
+                            <LocationSetter onLocationSet={onManualUpdate} />
+                            <TileLayer
+                                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                            />
+
+                            {/* Village Marker */}
+                            <Marker position={[data.latitude, data.longitude]}>
+                                <Popup>
+                                    <div className="text-center font-bold">Pusat Desa {data.name}</div>
+                                </Popup>
+                            </Marker>
+
+                            {/* User Location Marker */}
+                            {userLocation && (
+                                <CircleMarker
+                                    center={[userLocation.lat, userLocation.lng]}
+                                    pathOptions={{ color: '#3B82F6', fillColor: '#60A5FA', fillOpacity: 0.8 }}
+                                    radius={6}
+                                >
+                                    <Popup>
+                                        <div className="text-center">
+                                            <strong className="text-blue-600 block mb-1">Anda di Sini</strong>
+                                            <div className="text-[10px] text-gray-400">
+                                                Akurasi: {userLocation.accuracy}m
+                                            </div>
+                                        </div>
+                                    </Popup>
+                                </CircleMarker>
+                            )}
+                        </MapContainer>
+
+                        <div className="absolute bottom-2 left-2 z-[1000] pointer-events-none">
+                            <div className="bg-white/90 backdrop-blur-sm text-[10px] font-bold px-2 py-1 rounded shadow-sm flex items-center gap-1 text-gray-700">
+                                Klik peta untuk kalibrasi lokasi <MapPin size={8} className="text-blue-500" />
+                            </div>
+                        </div>
+
                         <a
                             href={`https://www.google.com/maps/search/?api=1&query=${data.latitude},${data.longitude}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="absolute inset-0 z-10 bg-black/0 hover:bg-black/10 transition-colors flex items-center justify-center opacity-0 group-hover/map:opacity-100"
+                            className="absolute top-2 right-2 z-[1000] bg-white/90 hover:bg-white text-gray-800 text-[10px] font-bold px-2 py-1 rounded shadow-sm opacity-0 group-hover/map:opacity-100 transition-opacity"
                         >
-                            <div className="bg-white/90 text-gray-800 text-xs font-bold px-3 py-1 rounded-full shadow-sm flex items-center gap-1">
-                                Perbesar <MapPin size={12} />
-                            </div>
+                            Gmaps
                         </a>
                     </div>
                 </div>
@@ -284,7 +337,7 @@ const MicroDashboard = ({ villageId, onBack, onSelectVillage }) => {
                                         {data.digital?.signal_type || 'Tidak Diketahui'} <Signal size={14} />
                                     </div>
                                     <div className="flex items-center justify-end gap-2 text-sm font-medium">
-                                        Sinyal:
+
                                         <span className={data.digital?.signal_strength?.toLowerCase().includes('kuat') ? "text-green-600" : "text-yellow-600"}>
                                             {data.digital?.signal_strength || 'Tidak Diketahui'}
                                         </span>

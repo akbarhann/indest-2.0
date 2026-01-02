@@ -6,7 +6,10 @@ from backend.database import get_session
 from backend.models import Village, AIAnalysis
 from backend.schemas import MacroResponse, MicroResponse, VillageMacro, VillageMicro, HealthRadar, EducationFunnel, IndependenceIndex, AIInsights, AISwot
 from backend.services.analytics import ScoringAlgorithm
+from backend.services.geofencing import geofence_service
 from sqlalchemy.orm import selectinload
+import time
+import math
 
 app = FastAPI(title="Village Intelligence Dashboard API")
 
@@ -23,13 +26,33 @@ app.add_middleware(
 def read_root():
     return {"status": "ok", "message": "Village Intelligence Dashboard API is running"}
 
-
-import time
-import math
-
 # Simple In-Memory Cache
 MACRO_CACHE = {"data": None, "expiry": 0}
+BOUNDARIES_CACHE = None
 CACHE_DURATION = 300  # 5 minutes
+
+@app.get("/api/boundaries")
+def get_boundaries():
+    """
+    Get GeoJSON boundaries for all villages.
+    Cached in memory for performance.
+    """
+    global BOUNDARIES_CACHE
+    if BOUNDARIES_CACHE:
+        return BOUNDARIES_CACHE
+
+    import os
+    import json
+    file_path = os.path.join(os.getcwd(), "data", "peta_desa_202513524.geojson")
+    if not os.path.exists(file_path):
+         file_path = os.path.join(os.getcwd(), "..", "data", "peta_desa_202513524.geojson")
+    
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="GeoJSON not found")
+        
+    with open(file_path, "r", encoding="utf-8") as f:
+        BOUNDARIES_CACHE = json.load(f)
+        return BOUNDARIES_CACHE
 
 @app.get("/api/macro", response_model=MacroResponse)
 def get_macro_data(session: Session = Depends(get_session)):
@@ -67,8 +90,8 @@ def get_macro_data(session: Session = Depends(get_session)):
             id=v.id,
             name=v.name,
             district=v.district,
-            latitude=float(v.latitude),
-            longitude=float(v.longitude),
+            latitude=float(v.latitude) if v.latitude is not None else 0.0,
+            longitude=float(v.longitude) if v.longitude is not None else 0.0,
             health_radar=HealthRadar(**health),
             education_funnel=EducationFunnel(**edu),
             economy=v.economy,
@@ -175,6 +198,38 @@ def haversine(lat1, lon1, lat2, lon2):
 
 @app.get("/api/nearest-village")
 def get_nearest_village(lat: float, long: float, session: Session = Depends(get_session)):
+    """
+    Find the village for a given coordinate. 
+    Uses High-Accuracy Polygon lookup (Geofencing) first, 
+    falls back to Haversine (Nearest Centroid) if outside all polygons.
+    """
+    # 1. High-Accuracy Polygon Lookup
+    print(f"DEBUG: Geofence lookup for {lat}, {long}")
+    geofence_match = geofence_service.find_village(lat, long)
+    if geofence_match:
+        print(f"DEBUG: Geofence HIT: {geofence_match['name']} ({geofence_match['id']})")
+        return {
+            "id": geofence_match["id"],
+            "name": geofence_match["name"],
+            "distance_km": 0,
+            "method": "geofence"
+        }
+    
+    # 2. Fuzzy Polygon Lookup (Near the border? ~500m)
+    print("DEBUG: Geofence MISS. Trying fuzzy polygon match...")
+    fuzzy_match = geofence_service.find_nearest_polygon(lat, long)
+    if fuzzy_match:
+        print(f"DEBUG: Fuzzy HIT: {fuzzy_match['name']} (~{fuzzy_match['distance_approx_m']}m)")
+        return {
+            "id": fuzzy_match["id"],
+            "name": fuzzy_match["name"],
+            "distance_km": float(fuzzy_match['distance_approx_m'] / 1000),
+            "method": "geofence_fuzzy"
+        }
+
+    print("DEBUG: Fuzzy MISS. Falling back to Haversine Centroid.")
+
+    # 3. Fallback to Nearest Centroid (Haversine)
     query = select(Village)
     villages = session.exec(query).all()
     
@@ -194,7 +249,11 @@ def get_nearest_village(lat: float, long: float, session: Session = Depends(get_
             continue
             
     if not nearest_village:
-        # Fallback if calculation fails
-        return {"id": "3524012015", "name": "Kemlagi Lor (Fallback)", "distance_km": 0}
+        return {"id": "3524012015", "name": "Kemlagi Lor (Fallback)", "distance_km": 0, "method": "error_fallback"}
 
-    return {"id": nearest_village.id, "name": nearest_village.name, "distance_km": round(min_dist, 2)}
+    return {
+        "id": nearest_village.id, 
+        "name": nearest_village.name, 
+        "distance_km": round(min_dist, 2),
+        "method": "haversine_fallback"
+    }

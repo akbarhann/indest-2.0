@@ -13,19 +13,19 @@ class ScoringAlgorithm:
             return {"supply": 0, "demand": 0, "status": "Unknown"}
 
         h = village.health
-        # Use detailed fields
-        supply = (h.jumlah_dokter * 3) + (h.jumlah_bidan * 1) + (h.jumlah_puskesmas * 5)
+        # Use detailed fields with null protection
+        supply = ((h.jumlah_dokter or 0) * 3) + ((h.jumlah_bidan or 0) * 1) + ((h.jumlah_puskesmas or 0) * 5)
         
         # Demand: Use Disease data if available
         demand = 0
         if village.disease:
             # Use aggregated infectious cases as proxy for demand
-            demand = village.disease.infectious_cases
+            demand = (village.disease.infectious_cases or 0)
         
         status = "High Risk" if demand > supply else "Safe"
         return {
-            "supply": supply, 
-            "demand": demand, 
+            "supply": int(supply), 
+            "demand": int(demand), 
             "status": status
         }
 
@@ -35,11 +35,11 @@ class ScoringAlgorithm:
             return {"ratio": 0.0, "status": "Unknown"}
             
         e = village.education
-        sd = e.sd_counts
+        sd = e.sd_counts or 0
         if sd == 0:
             return {"ratio": 0.0, "status": "Dropout Risk Zone"} # Assume risk if no SD
             
-        ratio = (e.smp_counts + e.sma_counts) / sd
+        ratio = ((e.smp_counts or 0) + (e.sma_counts or 0)) / sd
         status = "Dropout Risk Zone" if ratio < 0.2 else "Stable"
         
         return {
@@ -51,38 +51,39 @@ class ScoringAlgorithm:
     def calculate_independence_index(village: Village) -> Dict:
         # Weights: Digital 33%, Living 33%, Economy 33%
         if not village.digital or not village.infrastructure or not village.economy:
-             return {"score": 0, "grade": "Unknown"}
+             return {
+                 "score": 0.0, 
+                 "grade": "Incomplete Data",
+                 "details": {"digital": 0.0, "living": 0.0, "economy": 0.0}
+             }
 
         # Digital Score (0-100)
         d = village.digital
-        # Use safe string access (col or "") in case of None
         sig_str = (d.signal_strength or "").lower()
-        # net_str removed as per schema change
         
         sig_score = 100 if "kuat" in sig_str else (50 if "lemah" in sig_str else 0)
-        # Removed internet score component
-        bts_score = min(d.bts_count * 20, 100) # Cap at 5 BTS
+        bts_score = min((d.bts_count or 0) * 20, 100) # Cap at 5 BTS
         
-        digital_idx = (sig_score + bts_score) / 2 # Averaged over 2 factors now
+        digital_idx = (sig_score + bts_score) / 2
 
         # Living Score (0-100)
         i = village.infrastructure
-        water_str = (i.water_source or "").lower()
-        elec_str = (i.electricity or "").lower()
+        water_str = (i.water_source or i.water_drink_source or "").lower()
+        elec_str = (i.electricity or i.electricity_source or "").lower()
         fuel_str = (i.cooking_fuel or "").lower()
         
-        water_score = 100 if "leding" in water_str or "pompa" in water_str else 50
+        water_score = 100 if any(k in water_str for k in ["leding", "pompa", "bor"]) else 50
         elec_score = 100 if "pln" in elec_str else 0
-        fuel_score = 100 if "gas" in fuel_str or "listrik" in fuel_str else 50
+        fuel_score = 100 if any(k in fuel_str for k in ["gas", "listrik"]) else 50
         
         living_idx = (water_score + elec_score + fuel_score) / 3
 
         # Economy Score (0-100)
         e = village.economy
-        mkt_score = min(e.markets * 20, 100)
-        bank_score = min(e.banks * 50, 100)
-        coop_score = min(e.cooperatives * 20, 100)
-        bumdes_score = min(e.bumdes * 50, 100)
+        mkt_score = min((e.markets or 0) * 20, 100)
+        bank_score = min(((e.banks or 0) + (e.bank or 0)) * 50, 100) # Check both fields if ambiguity exists
+        coop_score = min((e.cooperatives or 0) * 20, 100)
+        bumdes_score = min((e.bumdes or 0) * 50, 100)
         economy_idx = (mkt_score + bank_score + coop_score + bumdes_score) / 4
 
         total_score = (digital_idx + living_idx + economy_idx) / 3
