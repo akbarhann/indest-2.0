@@ -4,10 +4,10 @@ from decimal import Decimal
 
 from backend.models import (
     HealthBase, EducationBase, EconomyBase, InfrastructureBase, 
-    DigitalBase, DisasterBase, DiseaseBase, CriminalBase
+    DigitalBase, DisasterBase, DiseaseBase, CriminalBase,
+    SocialBase, SecurityBase, SanitasiBase
 )
 
-# Shared Models
 class HealthRadar(BaseModel):
     supply: int
     demand: int
@@ -22,7 +22,6 @@ class IndependenceIndex(BaseModel):
     grade: str
     details: Dict[str, float]
 
-# Macro Schema
 class VillageMacro(BaseModel):
     id: str
     name: str
@@ -38,6 +37,9 @@ class VillageMacro(BaseModel):
     disaster: Optional[DisasterBase] = None
     disease: Optional[DiseaseBase] = None
     criminal: Optional[CriminalBase] = None
+    social: Optional[SocialBase] = None
+    security: Optional[SecurityBase] = None
+    sanitasi: Optional[SanitasiBase] = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -85,6 +87,9 @@ class VillageMicro(BaseModel):
     disaster: Optional[DisasterBase] = None
     disease: Optional[DiseaseBase] = None
     criminal: Optional[CriminalBase] = None
+    social: Optional[SocialBase] = None
+    security: Optional[SecurityBase] = None
+    sanitasi: Optional[SanitasiBase] = None
 
 class MicroResponse(BaseModel):
     data: VillageMicro

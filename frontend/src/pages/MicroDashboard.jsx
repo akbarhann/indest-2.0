@@ -6,7 +6,8 @@ import VillageSearch from '../components/VillageSearch';
 import axios from 'axios';
 import {
     ArrowLeft, Loader2, MapPin, Signal, Wifi, Zap, Droplets, Flame, Sun,
-    School, Factory, AlertTriangle, Stethoscope, ShieldAlert, HeartPulse, User
+    School, Factory, AlertTriangle, Stethoscope, ShieldAlert, HeartPulse, User,
+    Church, Users, CheckCircle, Trash2, ShieldCheck, Siren
 } from 'lucide-react';
 import {
     PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis,
@@ -21,17 +22,6 @@ const COLORS = {
     none: '#EF4444', // Red 500
     primary: '#3B82F6',
     secondary: '#F97316',
-};
-
-// --- Component: Map Click Listener ---
-const LocationSetter = ({ onLocationSet }) => {
-    useMapEvents({
-        click(e) {
-            const { lat, lng } = e.latlng;
-            onLocationSet(lat, lng);
-        },
-    });
-    return null;
 };
 
 // --- Component: Map Auto Center ---
@@ -185,6 +175,24 @@ const MicroDashboard = ({ villageId, onBack, onSelectVillage, userLocation, onMa
         })).sort((a, b) => b.cases - a.cases); // Sort by cases descending
     }, [data]);
 
+    const socialWorshipData = useMemo(() => {
+        if (!data?.social) return [];
+        return [
+            { name: 'Masjid', count: data.social.mosque || 0 },
+            { name: 'Musala', count: data.social.musala || 0 },
+            { name: 'Kristen', count: data.social.church_christian || 0 },
+            { name: 'Katolik', count: data.social.church_catholic || 0 },
+        ];
+    }, [data]);
+
+    const criminalData = useMemo(() => {
+        if (!data?.criminal) return [];
+        return [
+            { name: 'Bunuh Diri', Laki: data.criminal.suicide_count_man || 0, Perempuan: data.criminal.suicide_count_woman || 0 },
+            { name: 'Pembunuhan', Laki: data.criminal.murderer_case_man || 0, Perempuan: data.criminal.murderer_case_woman || 0 },
+        ];
+    }, [data]);
+
 
     if (loading) return <div className="flex items-center justify-center p-20"><Loader2 className="animate-spin text-blue-600 w-10 h-10" /></div>;
     if (!data) return <div className="p-20 text-center text-gray-500">Data tidak tersedia</div>;
@@ -231,10 +239,15 @@ const MicroDashboard = ({ villageId, onBack, onSelectVillage, userLocation, onMa
                             center={[data.latitude, data.longitude]}
                             zoom={14}
                             zoomControl={false}
-                            className="h-full w-full"
+                            dragging={false}
+                            scrollWheelZoom={false}
+                            doubleClickZoom={false}
+                            touchZoom={false}
+                            boxZoom={false}
+                            keyboard={false}
+                            className="h-full w-full pointer-events-none"
                         >
                             <ChangeView center={[data.latitude, data.longitude]} />
-                            <LocationSetter onLocationSet={onManualUpdate} />
                             <TileLayer
                                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
                                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -253,24 +266,11 @@ const MicroDashboard = ({ villageId, onBack, onSelectVillage, userLocation, onMa
                                     center={[userLocation.lat, userLocation.lng]}
                                     pathOptions={{ color: '#3B82F6', fillColor: '#60A5FA', fillOpacity: 0.8 }}
                                     radius={6}
-                                >
-                                    <Popup>
-                                        <div className="text-center">
-                                            <strong className="text-blue-600 block mb-1">Anda di Sini</strong>
-                                            <div className="text-[10px] text-gray-400">
-                                                Akurasi: {userLocation.accuracy}m
-                                            </div>
-                                        </div>
-                                    </Popup>
-                                </CircleMarker>
+                                />
                             )}
                         </MapContainer>
 
-                        <div className="absolute bottom-2 left-2 z-[1000] pointer-events-none">
-                            <div className="bg-white/90 backdrop-blur-sm text-[10px] font-bold px-2 py-1 rounded shadow-sm flex items-center gap-1 text-gray-700">
-                                Klik peta untuk kalibrasi lokasi <MapPin size={8} className="text-blue-500" />
-                            </div>
-                        </div>
+
 
                         <a
                             href={`https://www.google.com/maps/search/?api=1&query=${data.latitude},${data.longitude}`}
@@ -407,6 +407,100 @@ const MicroDashboard = ({ villageId, onBack, onSelectVillage, userLocation, onMa
                                 </div>
                             </div>
                         </Card>
+                    </div>
+                </section>
+
+                {/* --- Bagian: Dinamika Sosial & Keamanan --- */}
+                <section>
+                    <SectionTitle title="Dinamika Sosial & Keamanan" subtitle="Kohesi sosial, keamanan lingkungan, dan sanitasi." />
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+                        {/* Social: Tempat Ibadah & Migran */}
+                        <Card className="md:col-span-1">
+                            <h3 className="font-semibold text-gray-700 mb-4 flex items-center gap-2">
+                                <Church size={18} className="text-emerald-500" /> Fasilitas Sosial
+                            </h3>
+                            <div className="h-40 mb-4">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart data={socialWorshipData}>
+                                        <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+                                        <Tooltip />
+                                        <Bar dataKey="count" fill="#10B981" radius={[4, 4, 0, 0]} />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </div>
+                            <div className="flex justify-between items-center bg-gray-50 p-3 rounded-lg border border-gray-100">
+                                <span className="text-xs font-semibold text-gray-600 flex items-center gap-1"><Users size={14} /> Pekerja Migran</span>
+                                <div className="flex gap-3 text-xs">
+                                    <span className="text-blue-600 font-bold">L: {data.social?.migran_man || 0}</span>
+                                    <span className="text-pink-600 font-bold">P: {data.social?.migran_woman || 0}</span>
+                                </div>
+                            </div>
+                        </Card>
+
+                        {/* Security: Checklist */}
+                        <Card className="md:col-span-1 bg-slate-50 border-slate-200">
+                            <h3 className="font-semibold text-gray-700 mb-4 flex items-center gap-2">
+                                <ShieldCheck size={18} className="text-indigo-500" /> Keamanan Lingkungan
+                            </h3>
+                            <div className="space-y-3">
+                                <div className="flex justify-between items-center p-2 bg-white rounded border border-gray-100">
+                                    <span className="text-sm text-gray-600">Poskamling</span>
+                                    {data.security?.maintenance === 'Ya' ? <CheckCircle size={16} className="text-green-500" /> : <span className="text-xs text-gray-400">Tidak</span>}
+                                </div>
+                                <div className="flex justify-between items-center p-2 bg-white rounded border border-gray-100">
+                                    <span className="text-sm text-gray-600">Regu Keamanan</span>
+                                    {data.security?.security_group === 'Ya' ? <CheckCircle size={16} className="text-green-500" /> : <span className="text-xs text-gray-400">Tidak</span>}
+                                </div>
+                                <div className="flex justify-between items-center p-2 bg-white rounded border border-gray-100">
+                                    <span className="text-sm text-gray-600">Sistem Lapor</span>
+                                    {data.security?.pelaporan === 'Ya' ? <CheckCircle size={16} className="text-green-500" /> : <span className="text-xs text-gray-400">Tidak</span>}
+                                </div>
+                                <div className="mt-4 flex items-center justify-between">
+                                    <span className="text-sm font-bold text-slate-700">Anggota Linmas</span>
+                                    <span className="bg-indigo-100 text-indigo-700 font-bold px-3 py-1 rounded-full text-xs">
+                                        {data.security?.linmas || 0} Personil
+                                    </span>
+                                </div>
+                            </div>
+                        </Card>
+
+                        {/* Sanitasi: Tags & Alerts */}
+                        <Card className="md:col-span-1">
+                            <h3 className="font-semibold text-gray-700 mb-4 flex items-center gap-2">
+                                <Trash2 size={18} className="text-orange-500" /> Sanitasi & Lingkungan
+                            </h3>
+                            <div className="space-y-4">
+                                <div>
+                                    <p className="text-xs text-gray-500 uppercase font-bold mb-1">Pengelolaan Sampah</p>
+                                    <span className="inline-block bg-orange-50 text-orange-700 border border-orange-100 px-2 py-1 rounded text-xs font-medium">
+                                        {data.sanitasi?.sampah || 'Tidak Diketahui'}
+                                    </span>
+                                </div>
+                                <div className="grid grid-cols-2 gap-2">
+                                    <div className="text-center p-2 bg-gray-50 rounded border border-gray-100">
+                                        <p className="text-[10px] text-gray-500">Bank Sampah</p>
+                                        <p className="font-bold text-gray-700 text-sm">{data.sanitasi?.bank_sampah || 'Tidak'}</p>
+                                    </div>
+                                    <div className="text-center p-2 bg-gray-50 rounded border border-gray-100">
+                                        <p className="text-[10px] text-gray-500">TPS 3R</p>
+                                        <p className="font-bold text-gray-700 text-sm">{data.sanitasi?.tiga_r || 'Tidak'}</p>
+                                    </div>
+                                </div>
+                                <div className="pt-2 border-t border-gray-100">
+                                    <p className="text-xs text-gray-500 uppercase font-bold mb-2">Pencemaran</p>
+                                    <div className="flex gap-2">
+                                        {data.sanitasi?.pencemaran_air === 'Ada' && <span className="text-[10px] bg-red-100 text-red-700 px-2 py-1 rounded-full">Air</span>}
+                                        {data.sanitasi?.pencemaran_udara === 'Ada' && <span className="text-[10px] bg-gray-200 text-gray-700 px-2 py-1 rounded-full">Udara</span>}
+                                        {data.sanitasi?.pencemaran_lingkungan === 'Ada' && <span className="text-[10px] bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full">Tanah</span>}
+                                        {(!data.sanitasi?.pencemaran_air && !data.sanitasi?.pencemaran_udara && !data.sanitasi?.pencemaran_lingkungan) &&
+                                            <span className="text-[10px] bg-green-100 text-green-700 px-2 py-1 rounded-full">Tidak Ada Laporan</span>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        </Card>
+
                     </div>
                 </section>
 
@@ -621,6 +715,23 @@ const MicroDashboard = ({ villageId, onBack, onSelectVillage, userLocation, onMa
                                     </div>
                                 </Card>
                             )}
+
+                            {/* Criminal Check Chart */}
+                            <Card className="col-span-full mt-4 h-64 border-red-100">
+                                <h3 className="font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                                    <Siren size={18} className="text-red-500" /> Statistik Kriminal
+                                </h3>
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart data={criminalData}>
+                                        <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                                        <YAxis allowDecimals={false} />
+                                        <Tooltip />
+                                        <Legend />
+                                        <Bar dataKey="Laki" fill="#1E40AF" name="Laki-laki" />
+                                        <Bar dataKey="Perempuan" fill="#DB2777" name="Perempuan" />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </Card>
 
                             {/* Info Disabilitas */}
                             <div className="bg-white p-4 rounded-xl border border-gray-100">

@@ -23,6 +23,9 @@ class Village(VillageBase, table=True):
     disease: Optional["Disease"] = Relationship(back_populates="village")
     criminal: Optional["Criminal"] = Relationship(back_populates="village")
     ai_analysis: Optional["AIAnalysis"] = Relationship(back_populates="village")
+    social: Optional["Social"] = Relationship(back_populates="village")
+    security: Optional["Security"] = Relationship(back_populates="village")
+    sanitasi: Optional["Sanitasi"] = Relationship(back_populates="village")
 
 # --- Health ---
 class HealthBase(SQLModel):
@@ -211,3 +214,50 @@ class AIAnalysisBase(SQLModel):
 
 class AIAnalysis(AIAnalysisBase, table=True):
     village: Village = Relationship(back_populates="ai_analysis")
+
+# --- Social ---
+class SocialBase(SQLModel):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    village_id: str = Field(foreign_key="village.id")
+    religion: int = 0
+    mosque: int = 0
+    musala: int = 0
+    church_christian: int = 0
+    church_catholic: int = 0
+    migran_man: int = 0
+    migran_woman: int = 0
+    pub: Optional[str] = None
+
+class Social(SocialBase, table=True):
+    village: Village = Relationship(back_populates="social")
+
+# --- Security ---
+class SecurityBase(SQLModel):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    village_id: str = Field(foreign_key="village.id")
+    maintenance: Optional[str] = None
+    security_group: Optional[str] = None
+    pelaporan: Optional[str] = None
+    security_system: Optional[str] = None
+    linmas: int = 0
+
+class Security(SecurityBase, table=True):
+    village: Village = Relationship(back_populates="security")
+
+# --- Sanitasi ---
+class SanitasiBase(SQLModel):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    village_id: str = Field(foreign_key="village.id")
+    sampah: Optional[str] = None
+    tiga_r: Optional[str] = None
+    bank_sampah: Optional[str] = None
+    pemilahan: Optional[str] = None
+    toilet: Optional[str] = None
+    limbah_cair: Optional[str] = None
+    slum: Optional[str] = None
+    pencemaran_air: Optional[str] = None
+    pencemaran_udara: Optional[str] = None
+    pencemaran_lingkungan: Optional[str] = None
+
+class Sanitasi(SanitasiBase, table=True):
+    village: Village = Relationship(back_populates="sanitasi")

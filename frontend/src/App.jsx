@@ -51,6 +51,13 @@ function App() {
         const handleSuccess = async (position) => {
             const { latitude, longitude, accuracy } = position.coords;
             console.log(`Location found: ${latitude}, ${longitude} (Acc: ${accuracy}m)`);
+            if (accuracy > 5000) {
+                // Ignore extremely poor accuracy (>5km) which is likely just a country/city default
+                console.warn(`Ignoring very low accuracy location: ${accuracy}m`);
+                setLocationStatus({ status: 'locating', message: `Menunggu sinyal GPS... (Akurasi: ${Math.round(accuracy)}m)` });
+                return;
+            }
+
             setLocationStatus({
                 status: 'success',
                 coords: { lat: latitude.toFixed(6), lng: longitude.toFixed(6) },
@@ -68,8 +75,8 @@ function App() {
                         ...prev,
                         message: `Desa: ${res.data.name}${method}`
                     }));
-                    // AUTO-NAVIGATE to Micro Dashboard if detected
-                    setView('micro');
+                    // AUTO-NAVIGATE removed as per user request (stay on Macro view)
+                    // setView('micro');
                 }
             } catch (e) {
                 console.error("Failed to find nearest village:", e);
@@ -90,11 +97,19 @@ function App() {
             }
         };
 
-        navigator.geolocation.getCurrentPosition(handleSuccess, handleError, {
-            enableHighAccuracy: true,
-            timeout: 15000,
-            maximumAge: 60000
-        });
+        // Use watchPosition for continuous updates (better accuracy over time)
+        const watcherId = navigator.geolocation.watchPosition(
+            handleSuccess,
+            handleError,
+            {
+                enableHighAccuracy: true,
+                timeout: 20000,
+                maximumAge: 5000 // Accept slightly cached positions (5s) to avoid jitter
+            }
+        );
+
+        // Store watcherId to clear later if needed (though useEffect handles unmount mostly)
+        // For now, we let it run. In a real app, you might want to stop watching after high accuracy is achieved.
     };
 
     useEffect(() => {
@@ -127,8 +142,8 @@ function App() {
                     ...prev,
                     message: `Desa (Manual): ${res.data.name}${method}`
                 }));
-                // AUTO-NAVIGATE to Micro Dashboard on Manual Pin
-                setView('micro');
+                // AUTO-NAVIGATE removed (stay on Macro view)
+                // setView('micro');
             }
         } catch (e) {
             console.error("Failed to find nearest village:", e);

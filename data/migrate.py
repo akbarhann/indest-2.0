@@ -9,7 +9,8 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from sqlmodel import Session, select, SQLModel
 from backend.database import engine, create_db_and_tables
 from backend.models import (
-    Village, Health, Education, Economy, Infrastructure, Digital, Disaster, AIAnalysis, Disease, Criminal
+    Village, Health, Education, Economy, Infrastructure, Digital, Disaster, AIAnalysis, Disease, Criminal,
+    Social, Security, Sanitasi
 )
 
 CSV_FILE_PATH = os.path.join(os.path.dirname(__file__), "podes_dashboard_data.csv")
@@ -345,6 +346,51 @@ def migrate_data():
                 )
                 session.add(disease)
                 
+                #new
+                social = Social(
+                    village_id=village_id,
+                    religion = row.get('Agama/kepercayaan utama yang dianut olwh sebagian besar warga di desa/kelurahan', 0), # 1 = 'islam', nilai semua baris hanya 1
+                    mosque = parse_int(row.get('Jumlah tempat ibadah di desa/kelurahan - masjid', 0)),
+                    musala = parse_int(row.get('Jumlah tempat ibadah di desa/kelurahan - surau/langgar/musala', 0)),
+                    church_christian = parse_int(row.get('Jumlah tempat ibadah di desa/kelurahan - gereja Kristen', 0)),
+                    church_catholic = parse_int(row.get('Jumlah tempat ibadah di desa/kelurahan - gereja Katolik', 0)),
+                    migran_man = parse_int(row.get('Jumlah warga laki laki desa/kelurahan yang sedang bekerja sebagai Pekerja Migran Indonesia/TKI ', 0)),
+                    migran_woman = parse_int(row.get('Jumlah warga perempuan desa/kelurahan yang sedang bekerja sebagai Pekerja Migran Indonesia/TKI ', 0)),
+                    pub = row.get('Keberadaan pub/diskotek/tempat karaoke yang masih berfungsi di desa/kelurahan', 0), # Ya atau Tidak
+                    
+                )
+                session.add(social)
+
+                #new
+                security = Security(
+                    village_id=village_id,
+                    maintenance = row.get('Pembangunan/pemeliharaan pos keamanan lingkungan', 0), # Ya atau Tidak
+                    security_group = row.get('Pembentukan/pengaturan regu keamanan', 0), # Ya atau Tidak
+                    pelaporan = row.get('Pelaporan tamu menginap >24 jam ke aparat', 0), # Ya atau Tidak
+                    security_system = row.get('Pengaktifan sistem keamanan lingkungan oleh warga', 0), # Ya atau Tidak
+                    linmas = parse_int(row.get('Jumlah anggota linmas/hansip', 0)),
+                    
+                )
+                session.add(security)
+
+                #new
+                sanitasi = Sanitasi(
+                    village_id=village_id,
+                    sampah = row.get('Tempat buang sampah sebagian besar keluarga', 0), # 'Dalam lubang atau dibakar langsung', 'Drainase', 'Sungai/Saluran Irigasi', 'Tempat Sampah, kemudian diangkut', 'Lainnya'
+                    tiga_r = row.get('Keberadaan TPS3R (Reduce, Reuse, Recycle)', 0), # 'Ada,digunakan', 'Tidak ada'
+                    bank_sampah = row.get('Keberadaan bank sampah di desa/kelurahan', 0), # Ada atau Tidak ada
+                    pemilahan = row.get('Pemilahan sampah membusuk dan sampah kering', 0), # 'Sebagian besar keluarga','Sebagian kecil keluarga','Semua keluarga','Tidak ada'
+                    toilet = row.get('Penggunaan fasilitas buang air besar sebagian besar keluarga', 0), # 'Jamban sendiri'
+                    limbah_cair = row.get('Saluran pembuangan limbah cair dari air mandi/cuci Sebagian besar keluarga', 0), # 'Dalam lubang atau tanah terbuka', 'Drainase (got/selokam)', 'Lubang resapan', 'Sungai/saluran irigasi/danau/laut', 'Lainnya'
+                    slum = row.get('Keberadaan permukiman kumuh di desa/kelurahan', 0), # 'Ada', 'Tidak ada'
+                    pencemaran_air = row.get('Jenis pencemaran lingkungan hidup - Air', 0), # 'Ada', 'Tidak ada'
+                    pencemaran_udara = row.get('Jenis pencemaran lingkungan hidup - Udara', 0), # 'Ada', 'Tidak ada'
+                    pencemaran_lingkungan = row.get('Jenis pencemaran lingkungan hidup - Tanah', 0), # 'Ada', 'Tidak ada'
+                    
+                )
+                    
+                session.add(sanitasi)
+
                 # 12. Criminal
                 criminal = Criminal(
                     village_id=village_id,
@@ -354,6 +400,8 @@ def migrate_data():
                     murderer_case_woman = parse_int(row.get('Jumlah pembunuhan selama setahun terakhir - perempuan', 0)),
                 )
                 session.add(criminal)
+
+
 
 
                 # 10. AI Analysis Placeholder

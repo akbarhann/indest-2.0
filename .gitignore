@@ -21,3 +21,13 @@ Desktop.ini
 # IDE
 .vscode/
 .idea/
+
+# Data
+*.db
+*.sqlite
+*.sqlite3
+list_desa_*.json
+
+# Documentation & Analysis
+ANALISIS_*.md
+DOKUMENTASI_*.md

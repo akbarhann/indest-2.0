@@ -182,7 +182,10 @@ def get_micro_data(village_id: str, session: Session = Depends(get_session)):
         digital=village.digital,
         disaster=village.disaster,
         disease=village.disease,
-        criminal=village.criminal
+        criminal=village.criminal,
+        social=village.social,
+        security=village.security,
+        sanitasi=village.sanitasi
     ))
 
 def haversine(lat1, lon1, lat2, lon2):

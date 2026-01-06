@@ -20,14 +20,14 @@ const Layout = ({ children, setView, theme, setTheme, locationStatus, onRetryLoc
             {/* Sidebar Mobile Overlay */}
             {isOpen && (
                 <div
-                    className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+                    className="fixed inset-0 z-[9990] bg-black/50 lg:hidden"
                     onClick={toggleSidebar}
                 />
             )}
 
             {/* Sidebar */}
             <aside
-                className={`fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-slate-900 shadow-xl transform transition-transform duration-300 lg:static lg:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'
+                className={`fixed inset-y-0 left-0 z-[9999] w-64 bg-white dark:bg-slate-900 shadow-xl transform transition-transform duration-300 lg:static lg:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'
                     }`}
             >
                 <div className="flex items-center justify-between p-4 border-b border-gray-100 dark:border-gray-800">
@@ -123,13 +123,21 @@ const Layout = ({ children, setView, theme, setTheme, locationStatus, onRetryLoc
                                     {locationStatus?.message || 'Siap mendeteksi...'}
                                 </p>
                                 {locationStatus?.accuracy && (
-                                    <div className="mt-2 h-1 w-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                                        <div
-                                            className={clsx("h-full transition-all duration-500",
-                                                locationStatus.accuracy < 50 ? "bg-green-500 w-full" :
-                                                    locationStatus.accuracy < 500 ? "bg-yellow-500 w-3/4" : "bg-red-500 w-1/4"
-                                            )}
-                                        />
+                                    <div className="mt-2" title={`Akurasi GPS: ${locationStatus.accuracy} meter`}>
+                                        <div className="flex justify-between text-[8px] text-gray-400 mb-0.5">
+                                            <span>GPS Signal</span>
+                                            <span>{locationStatus.accuracy}m</span>
+                                        </div>
+                                        <div className="h-1.5 w-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                                            <div
+                                                className={clsx("h-full transition-all duration-500 rounded-full",
+                                                    locationStatus.accuracy <= 20 ? "bg-green-500 w-full" :
+                                                        locationStatus.accuracy <= 100 ? "bg-emerald-400 w-3/4" :
+                                                            locationStatus.accuracy <= 500 ? "bg-yellow-400 w-1/2" :
+                                                                "bg-red-500 w-1/4"
+                                                )}
+                                            />
+                                        </div>
                                     </div>
                                 )}
                             </div>
