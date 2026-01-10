@@ -6,7 +6,10 @@
             "destination": "/backend/main.py"
         },
         {
-            "source": "/((?!api/|assets/|team/|favicon.ico).*)",
+            "handle": "filesystem"
+        },
+        {
+            "source": "/(.*)",
             "destination": "/index.html"
         }
     ],
