@@ -62,7 +62,7 @@ const MicroDashboard = ({ villageId, onBack, onSelectVillage, userLocation, onMa
         const fetchData = async () => {
             console.log("Fetching data for village:", villageId);
             try {
-                const res = await axios.get(`http://localhost:8000/api/micro/${villageId}`);
+                const res = await axios.get(`/api/micro/${villageId}`);
                 console.log("API Success:", res.data);
                 setData(res.data.data);
                 setLoading(false);

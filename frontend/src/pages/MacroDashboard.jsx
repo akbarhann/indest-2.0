@@ -111,13 +111,13 @@ const MacroDashboard = ({ onSelectVillage, userLocation, onManualUpdate }) => {
             try {
                 // If we already have boundaries, just fetch villages
                 if (cachedBoundaries) {
-                    const res = await axios.get('http://localhost:8000/api/macro');
+                    const res = await axios.get('/api/macro');
                     setVillages(res.data.data);
                     setBoundaries(cachedBoundaries);
                 } else {
                     const [vRes, bRes] = await Promise.all([
-                        axios.get('http://localhost:8000/api/macro'),
-                        axios.get('http://localhost:8000/api/boundaries').catch(() => ({ data: null }))
+                        axios.get('/api/macro'),
+                        axios.get('/api/boundaries').catch(() => ({ data: null }))
                     ]);
                     setVillages(vRes.data.data);
                     if (bRes.data) {

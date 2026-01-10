@@ -14,7 +14,7 @@ const VillageSearch = ({ onSelect, initialVillages = [], placeholder = "Cari Des
         if (initialVillages.length === 0) {
             const fetchVillages = async () => {
                 try {
-                    const res = await axios.get('http://localhost:8000/api/macro');
+                    const res = await axios.get('/api/macro');
                     setVillages(res.data.data);
                 } catch (error) {
                     console.error("Failed to fetch villages for search:", error);

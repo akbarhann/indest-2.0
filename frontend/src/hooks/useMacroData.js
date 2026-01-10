@@ -10,7 +10,7 @@ const useMacroData = () => {
         const fetchMacro = async () => {
             try {
                 // Adjust URL if needed (port 8000)
-                const response = await axios.get('http://localhost:8000/api/macro');
+                const response = await axios.get('/api/macro');
                 setData(response.data.data);
                 setLoading(false);
             } catch (err) {
