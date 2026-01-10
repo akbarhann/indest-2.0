@@ -26,34 +26,7 @@ app.add_middleware(
 async def on_startup():
     await init_db()
 
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
-
-# ... (API routes above remain)
-
-# Serve React Static Files (Assets)
-app.mount("/assets", StaticFiles(directory="frontend/dist/assets"), name="assets")
-
-# Serve Team Photos which are in public/team -> dist/team
-try:
-    app.mount("/team", StaticFiles(directory="frontend/dist/team"), name="team")
-except Exception:
-    pass # In case folder missing
-
-# Serve Root (Index.html) for all non-api routes (SPA Support)
-@app.get("/{full_path:path}")
-async def serve_react_app(full_path: str):
-    # Allow API calls to pass through (though they should be matched above)
-    if full_path.startswith("api/"):
-         raise HTTPException(status_code=404, detail="API Endpoint not found")
-    
-    # Check if specific file exists in dist (e.g. favicon.ico)
-    file_path = os.path.join("frontend", "dist", full_path)
-    if os.path.exists(file_path) and os.path.isfile(file_path):
-        return FileResponse(file_path)
-
-    # Fallback to index.html for React Router
-    return FileResponse("frontend/dist/index.html")
+# Logic moved to end of file
 
 # Simple In-Memory Cache
 MACRO_CACHE = {"data": None, "expiry": 0}
@@ -284,7 +257,43 @@ async def get_nearest_village(lat: float, long: float):
 
     return {
         "id": nearest_village.id, 
-        "name": nearest_village.name, 
-        "distance_km": round(min_dist, 2),
-        "method": "haversine_fallback"
-    }
+        "name": nearest_village.name, }
+
+# ==========================================
+# FRONTEND SERVING LOGIC (MUST BE AT END)
+# ==========================================
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+
+# Serve React Static Files (Assets)
+try:
+    app.mount("/assets", StaticFiles(directory="frontend/dist/assets"), name="assets")
+except Exception:
+    pass
+
+# Serve Team Photos
+try:
+    app.mount("/team", StaticFiles(directory="frontend/dist/team"), name="team")
+except Exception:
+    pass 
+
+# Serve Root (Index.html) explicitly
+@app.get("/")
+async def read_root():
+    return FileResponse("frontend/dist/index.html")
+
+# Serve Root (Index.html) for all non-api routes (SPA Support)
+# This MUST be the last route defined to avoid capturing API calls
+@app.get("/{full_path:path}")
+async def serve_react_app(full_path: str):
+    # Allow API calls to pass through (though they should be matched above)
+    if full_path.startswith("api/"):
+         raise HTTPException(status_code=404, detail="API Endpoint not found")
+    
+    # Check if specific file exists in dist (e.g. favicon.ico)
+    file_path = os.path.join("frontend", "dist", full_path)
+    if os.path.exists(file_path) and os.path.isfile(file_path):
+        return FileResponse(file_path)
+
+    # Fallback to index.html for React Router
+    return FileResponse("frontend/dist/index.html")
