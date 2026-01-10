@@ -29,5 +29,6 @@ Desktop.ini
 list_desa_*.json
 
 # Documentation & Analysis
+*.md
 ANALISIS_*.md
 DOKUMENTASI_*.md
