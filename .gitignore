@@ -9,7 +9,8 @@ venv/
 
 # Node.js
 node_modules/
-dist/
+# dist/  <-- Commented out to allow pushing React build to Railway
+!frontend/dist/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
