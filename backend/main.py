@@ -26,9 +26,34 @@ app.add_middleware(
 async def on_startup():
     await init_db()
 
-@app.get("/")
-def read_root():
-    return {"status": "ok", "message": "Village Intelligence Dashboard API is running"}
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+
+# ... (API routes above remain)
+
+# Serve React Static Files (Assets)
+app.mount("/assets", StaticFiles(directory="frontend/dist/assets"), name="assets")
+
+# Serve Team Photos which are in public/team -> dist/team
+try:
+    app.mount("/team", StaticFiles(directory="frontend/dist/team"), name="team")
+except Exception:
+    pass # In case folder missing
+
+# Serve Root (Index.html) for all non-api routes (SPA Support)
+@app.get("/{full_path:path}")
+async def serve_react_app(full_path: str):
+    # Allow API calls to pass through (though they should be matched above)
+    if full_path.startswith("api/"):
+         raise HTTPException(status_code=404, detail="API Endpoint not found")
+    
+    # Check if specific file exists in dist (e.g. favicon.ico)
+    file_path = os.path.join("frontend", "dist", full_path)
+    if os.path.exists(file_path) and os.path.isfile(file_path):
+        return FileResponse(file_path)
+
+    # Fallback to index.html for React Router
+    return FileResponse("frontend/dist/index.html")
 
 # Simple In-Memory Cache
 MACRO_CACHE = {"data": None, "expiry": 0}
