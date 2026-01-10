@@ -3,9 +3,9 @@ from pydantic import BaseModel, ConfigDict
 from decimal import Decimal
 
 from backend.models import (
-    HealthBase, EducationBase, EconomyBase, InfrastructureBase, 
-    DigitalBase, DisasterBase, DiseaseBase, CriminalBase,
-    SocialBase, SecurityBase, SanitasiBase
+    Health, Education, Economy, Infrastructure, 
+    Digital, Disaster, Disease, Criminal,
+    Social, Security, Sanitasi
 )
 
 class HealthRadar(BaseModel):
@@ -31,15 +31,15 @@ class VillageMacro(BaseModel):
     health_radar: HealthRadar
     education_funnel: EducationFunnel
     # Expanded fields for Macro View filters & charts
-    economy: Optional[EconomyBase] = None
-    infrastructure: Optional[InfrastructureBase] = None
-    digital: Optional[DigitalBase] = None
-    disaster: Optional[DisasterBase] = None
-    disease: Optional[DiseaseBase] = None
-    criminal: Optional[CriminalBase] = None
-    social: Optional[SocialBase] = None
-    security: Optional[SecurityBase] = None
-    sanitasi: Optional[SanitasiBase] = None
+    economy: Optional[Economy] = None
+    infrastructure: Optional[Infrastructure] = None
+    digital: Optional[Digital] = None
+    disaster: Optional[Disaster] = None
+    disease: Optional[Disease] = None
+    criminal: Optional[Criminal] = None
+    social: Optional[Social] = None
+    security: Optional[Security] = None
+    sanitasi: Optional[Sanitasi] = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -60,8 +60,8 @@ class AIInsights(BaseModel):
     recommendations: List[str]
 
 from backend.models import (
-    HealthBase, EducationBase, EconomyBase, InfrastructureBase, 
-    DigitalBase, DisasterBase, DiseaseBase, CriminalBase
+    Health, Education, Economy, Infrastructure, 
+    Digital, Disaster, Disease, Criminal
 )
 
 class VillageMicro(BaseModel):
@@ -79,17 +79,17 @@ class VillageMicro(BaseModel):
     ai_insights: Optional[AIInsights] = None
     
     # Detailed Nested Data using Base schemas (No relationships)
-    health: Optional[HealthBase] = None
-    education: Optional[EducationBase] = None
-    economy: Optional[EconomyBase] = None
-    infrastructure: Optional[InfrastructureBase] = None
-    digital: Optional[DigitalBase] = None
-    disaster: Optional[DisasterBase] = None
-    disease: Optional[DiseaseBase] = None
-    criminal: Optional[CriminalBase] = None
-    social: Optional[SocialBase] = None
-    security: Optional[SecurityBase] = None
-    sanitasi: Optional[SanitasiBase] = None
+    health: Optional[Health] = None
+    education: Optional[Education] = None
+    economy: Optional[Economy] = None
+    infrastructure: Optional[Infrastructure] = None
+    digital: Optional[Digital] = None
+    disaster: Optional[Disaster] = None
+    disease: Optional[Disease] = None
+    criminal: Optional[Criminal] = None
+    social: Optional[Social] = None
+    security: Optional[Security] = None
+    sanitasi: Optional[Sanitasi] = None
 
 class MicroResponse(BaseModel):
     data: VillageMicro

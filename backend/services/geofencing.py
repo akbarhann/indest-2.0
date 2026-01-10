@@ -32,9 +32,20 @@ class GeofenceService:
 
         print(f"Loading Village Boundaries from {file_path}...")
         try:
-            with open(file_path, "r", encoding="utf-8") as f:
-                data = json.load(f)
-                for feature in data.get("features", []):
+            try:
+                # Try Latin-1 first as it seems to be the correct encoding for this file
+                with open(file_path, "r", encoding="latin-1") as f:
+                    data = json.load(f)
+            except Exception:
+                try:
+                    print("Latin-1 failed, retrying with UTF-8...")
+                    with open(file_path, "r", encoding="utf-8") as f:
+                        data = json.load(f)
+                except Exception as e2:
+                    print(f"Critical loading error: {e2}")
+                    data = {"features": []}
+            
+            for feature in data.get("features", []):
                     try:
                         # iddesa matches the village ID in our database
                         geom = shape(feature["geometry"])

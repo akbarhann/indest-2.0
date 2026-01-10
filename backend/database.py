@@ -1,17 +1,17 @@
-from sqlmodel import SQLModel, create_engine, Session
 import os
+from motor.motor_asyncio import AsyncIOMotorClient
+from beanie import init_beanie
+from backend.models import Village
 
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "postgresql://user_desa:password_desa@localhost:5432/db_desa"
-)
-
-
-engine = create_engine(DATABASE_URL, echo=True)
-
-def get_session():
-    with Session(engine) as session:
-        yield session
-
-def create_db_and_tables():
-    SQLModel.metadata.create_all(engine)
+async def init_db():
+    # Use standard MongoDB connection string
+    # Default to localhost if not set
+    mongo_url = os.getenv("MONGODB_URL", "mongodb://localhost:27017")
+    client = AsyncIOMotorClient(mongo_url)
+    
+    # Define database name
+    db_name = os.getenv("MONGODB_DB_NAME", "indest_db")
+    db = client[db_name]
+    
+    # Initialize Beanie with the Village document model
+    await init_beanie(database=db, document_models=[Village])

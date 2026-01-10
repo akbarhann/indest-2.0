@@ -1,9 +1,9 @@
 from decimal import Decimal
 from typing import List, Dict, Optional
-import numpy as np
-import pandas as pd
-from sklearn.cluster import KMeans
-from sklearn.preprocessing import LabelEncoder
+# import numpy as np         # REMOVED for Vercel optimization
+# import pandas as pd        # REMOVED for Vercel optimization
+# from sklearn.cluster import KMeans             # REMOVED 
+# from sklearn.preprocessing import LabelEncoder # REMOVED 
 from backend.models import Village, Health, Education, Economy, Infrastructure, Digital, Disaster
 
 class ScoringAlgorithm:
@@ -102,66 +102,11 @@ class ScoringAlgorithm:
 
 class ClusteringService:
     def __init__(self, n_clusters=5):
-        self.n_clusters = n_clusters
-        self.model = KMeans(n_clusters=n_clusters, random_state=42)
-        self.encoders = {
-            'topography': LabelEncoder(),
-            'primary_income': LabelEncoder(),
-            'signal_strength': LabelEncoder()
-        }
-        self.cluster_labels = {
-            0: "Agropolitan",
-            1: "Industrial Zone",
-            2: "Coastal Trade Hub",
-            3: "Digital Service Center",
-            4: "Tourism Potential"
-        } # Placeholder names, typically mapped after analysis
-
-    def _prepare_data(self, villages: List[Village]) -> pd.DataFrame:
-        data = []
-        for v in villages:
-            row = {
-                'topography': v.topography or 'Unknown',
-                'primary_income': v.economy.primary_income if v.economy else 'Unknown',
-                'signal_strength': v.digital.signal_strength if v.digital else 'Unknown',
-                'markets': v.economy.markets if v.economy else 0,
-                'industries': v.economy.industries if v.economy else 0 # Ensure this field exists or verify models
-            }
-            data.append(row)
-        return pd.DataFrame(data)
+        pass # Disabled to save space
 
     def train_model(self, villages: List[Village]):
-        df = self._prepare_data(villages)
-        
-        # Fit encoders
-        for col, encoder in self.encoders.items():
-            df[col] = encoder.fit_transform(df[col].astype(str))
-            
-        X = df[['topography', 'primary_income', 'signal_strength', 'markets', 'industries']]
-        self.model.fit(X)
-        return self.model.labels_
+        pass # Disabled
 
     def predict_persona(self, village: Village) -> str:
-        # Need to handle single prediction with existing encoders
-        # Note: In production, encoders should be saved/loaded. 
-        # Here we assume training happened or handle gracefully.
-        try:
-            df = self._prepare_data([village])
-            for col, encoder in self.encoders.items():
-                # Handle unseen labels strictly or leniently? 
-                # For demo, define fallback or re-fit (bad for single pred).
-                # Ideally, fit once on all data.
-                if hasattr(encoder, 'classes_'):
-                     # Simple unseen handling: assign mostly frequent or 0
-                     # Check if label exists
-                     val = df[col].iloc[0]
-                     if val in encoder.classes_:
-                         df[col] = encoder.transform([val])
-                     else:
-                         df[col] = 0 # Fallback
-            
-            X = df[['topography', 'primary_income', 'signal_strength', 'markets', 'industries']]
-            cluster_id = self.model.predict(X)[0]
-            return self.cluster_labels.get(cluster_id, f"Cluster {cluster_id}")
-        except Exception as e:
-            return "Uncategorized"
+        # Static fallback without AI
+        return "Uncategorized (AI Disabled)"

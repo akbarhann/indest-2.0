@@ -290,11 +290,11 @@ const MacroDashboard = ({ onSelectVillage, userLocation, onManualUpdate }) => {
 
             {/* 2. Interactive Map Centerpiece */}
             < div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[500px]" >
-                <div className="lg:col-span-3 bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden relative group">
+                <div className="lg:col-span-3 bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden relative group">
                     {/* Map Filters & Legend (Top Right) */}
                     <div className="absolute top-4 right-4 z-[1000] flex flex-col items-end gap-2">
                         {/* Filter Buttons */}
-                        <div className="bg-white/90 backdrop-blur shadow-lg p-2 rounded-xl flex gap-2">
+                        <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur shadow-lg p-2 rounded-xl flex gap-2">
                             <LensButton
                                 active={lens === 'risk'}
                                 onClick={() => setLens('risk')}
@@ -319,7 +319,7 @@ const MacroDashboard = ({ onSelectVillage, userLocation, onManualUpdate }) => {
                         </div>
 
                         {/* Dynamic Legend */}
-                        <div className="bg-white/90 backdrop-blur shadow-md px-4 py-2 rounded-lg text-xs font-medium text-gray-600 flex flex-col gap-1 min-w-[140px]">
+                        <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur shadow-md px-4 py-2 rounded-lg text-xs font-medium text-gray-600 dark:text-gray-300 flex flex-col gap-1 min-w-[140px]">
                             <span className="text-[10px] uppercase text-gray-400 font-bold mb-1">Legenda Warna</span>
                             {lens === 'risk' && (
                                 <>
@@ -460,17 +460,17 @@ const MacroDashboard = ({ onSelectVillage, userLocation, onManualUpdate }) => {
             {/* 3. Section: Wall of Shame & Fame (Leaderboards) */}
             < div className="grid grid-cols-1 lg:grid-cols-2 gap-6" >
                 {/* Wall of Shame (Risk) */}
-                < div className="bg-white rounded-xl shadow-sm border border-red-100 overflow-hidden" >
-                    <div className="px-6 py-4 border-b border-red-50 bg-red-50/30 flex justify-between items-center">
+                <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-red-100 dark:border-red-900/30 overflow-hidden">
+                    <div className="px-6 py-4 border-b border-red-50 dark:border-red-900/20 bg-red-50/30 dark:bg-red-900/10 flex justify-between items-center">
                         <div>
-                            <h3 className="font-bold text-gray-800">Need Attention</h3>
+                            <h3 className="font-bold text-gray-800 dark:text-gray-100">Need Attention</h3>
                             <p className="text-xs text-red-500">Highest Risk / Case Count</p>
                         </div>
                         <AlertTriangle className="text-red-500" />
                     </div>
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm text-left">
-                            <thead className="text-xs text-gray-500 uppercase bg-gray-50">
+                            <thead className="text-xs text-gray-500 dark:text-gray-400 uppercase bg-gray-50 dark:bg-slate-700">
                                 <tr>
                                     <th className="px-6 py-3">Desa</th>
                                     <th className="px-6 py-3 text-right">Infectious Cases</th>
@@ -480,8 +480,8 @@ const MacroDashboard = ({ onSelectVillage, userLocation, onManualUpdate }) => {
                             </thead>
                             <tbody>
                                 {topRiskVillages.map((v, i) => (
-                                    <tr key={i} className="bg-white border-b hover:bg-red-50/50 transition">
-                                        <td className="px-6 py-3 font-medium text-gray-900">{v.name}</td>
+                                    <tr key={i} className="bg-white dark:bg-slate-800 border-b dark:border-gray-700 hover:bg-red-50/50 dark:hover:bg-red-900/20 transition">
+                                        <td className="px-6 py-3 font-medium text-gray-900 dark:text-gray-100">{v.name}</td>
                                         <td className="px-6 py-3 text-right font-bold text-red-600">{v.disease?.infectious_cases || 0}</td>
                                         <td className="px-6 py-3 text-right">
                                             {v.disaster?.warning_system === 'ada'
@@ -500,17 +500,17 @@ const MacroDashboard = ({ onSelectVillage, userLocation, onManualUpdate }) => {
                 </div >
 
                 {/* Wall of Fame (Potential) */}
-                < div className="bg-white rounded-xl shadow-sm border border-emerald-100 overflow-hidden" >
-                    <div className="px-6 py-4 border-b border-emerald-50 bg-emerald-50/30 flex justify-between items-center">
+                <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-emerald-100 dark:border-emerald-900/30 overflow-hidden">
+                    <div className="px-6 py-4 border-b border-emerald-50 dark:border-emerald-900/20 bg-emerald-50/30 dark:bg-emerald-900/10 flex justify-between items-center">
                         <div>
-                            <h3 className="font-bold text-gray-800">Top Potentials</h3>
+                            <h3 className="font-bold text-gray-800 dark:text-gray-100">Top Potentials</h3>
                             <p className="text-xs text-emerald-600">Economic Hub Candidates</p>
                         </div>
                         <ShoppingBag className="text-emerald-500" />
                     </div>
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm text-left">
-                            <thead className="text-xs text-gray-500 uppercase bg-gray-50">
+                            <thead className="text-xs text-gray-500 dark:text-gray-400 uppercase bg-gray-50 dark:bg-slate-700">
                                 <tr>
                                     <th className="px-6 py-3">Desa</th>
                                     <th className="px-6 py-3 text-right">Markets + BUMDes</th>
@@ -520,8 +520,8 @@ const MacroDashboard = ({ onSelectVillage, userLocation, onManualUpdate }) => {
                             </thead>
                             <tbody>
                                 {topEconomyVillages.map((v, i) => (
-                                    <tr key={i} className="bg-white border-b hover:bg-emerald-50/50 transition">
-                                        <td className="px-6 py-3 font-medium text-gray-900">{v.name}</td>
+                                    <tr key={i} className="bg-white dark:bg-slate-800 border-b dark:border-gray-700 hover:bg-emerald-50/50 dark:hover:bg-emerald-900/20 transition">
+                                        <td className="px-6 py-3 font-medium text-gray-900 dark:text-gray-100">{v.name}</td>
                                         <td className="px-6 py-3 text-right font-bold text-emerald-600">{(v.economy?.markets || 0) + (v.economy?.bumdes || 0)}</td>
                                         <td className="px-6 py-3 text-right text-xs">
                                             {v.digital?.signal_strength || 'Unknown'}
@@ -539,8 +539,8 @@ const MacroDashboard = ({ onSelectVillage, userLocation, onManualUpdate }) => {
 
             {/* 4. Section: Regional Aggregates (Charts) */}
             < div className="grid grid-cols-1 md:grid-cols-2 gap-6" >
-                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                    <h3 className="font-bold text-gray-800 mb-4">Sumber Penghasilan Utama</h3>
+                <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
+                    <h3 className="font-bold text-gray-800 dark:text-gray-100 mb-4">Sumber Penghasilan Utama</h3>
                     <div className="h-64">
                         <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
@@ -563,8 +563,8 @@ const MacroDashboard = ({ onSelectVillage, userLocation, onManualUpdate }) => {
                     </div>
                 </div>
 
-                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                    <h3 className="font-bold text-gray-800 mb-4">Kesenjangan Infrastruktur (Listrik)</h3>
+                <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
+                    <h3 className="font-bold text-gray-800 dark:text-gray-100 mb-4">Kesenjangan Infrastruktur (Listrik)</h3>
                     <div className="h-64">
                         <ResponsiveContainer width="100%" height="100%">
                             <BarChart data={infraData} layout="vertical">

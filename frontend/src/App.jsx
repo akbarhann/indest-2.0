@@ -103,8 +103,8 @@ function App() {
             handleError,
             {
                 enableHighAccuracy: true,
-                timeout: 20000,
-                maximumAge: 5000 // Accept slightly cached positions (5s) to avoid jitter
+                timeout: 15000,    // Increase from default to 15s
+                maximumAge: 10000  // Accept cached positions up to 10s old
             }
         );
 

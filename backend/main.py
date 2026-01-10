@@ -1,26 +1,30 @@
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from sqlmodel import Session, select
 from typing import List
-from backend.database import get_session
+from backend.database import init_db
 from backend.models import Village, AIAnalysis
 from backend.schemas import MacroResponse, MicroResponse, VillageMacro, VillageMicro, HealthRadar, EducationFunnel, IndependenceIndex, AIInsights, AISwot
 from backend.services.analytics import ScoringAlgorithm
 from backend.services.geofencing import geofence_service
-from sqlalchemy.orm import selectinload
 import time
 import math
+import os
+import json
 
 app = FastAPI(title="Village Intelligence Dashboard API")
 
 # Enable CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # Allow all origins for dev; specify ["http://localhost:5173"] for stricter security
+    allow_origins=["*"], 
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.on_event("startup")
+async def on_startup():
+    await init_db()
 
 @app.get("/")
 def read_root():
@@ -41,8 +45,6 @@ def get_boundaries():
     if BOUNDARIES_CACHE:
         return BOUNDARIES_CACHE
 
-    import os
-    import json
     file_path = os.path.join(os.getcwd(), "data", "peta_desa_202513524.geojson")
     if not os.path.exists(file_path):
          file_path = os.path.join(os.getcwd(), "..", "data", "peta_desa_202513524.geojson")
@@ -50,15 +52,26 @@ def get_boundaries():
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="GeoJSON not found")
         
-    with open(file_path, "r", encoding="utf-8") as f:
-        BOUNDARIES_CACHE = json.load(f)
-        return BOUNDARIES_CACHE
+    try:
+        # Try Latin-1 first
+        with open(file_path, "r", encoding="latin-1") as f:
+            BOUNDARIES_CACHE = json.load(f)
+    except Exception:
+        try:
+            print("Latin-1 failed, retrying with UTF-8...")
+            with open(file_path, "r", encoding="utf-8") as f:
+                BOUNDARIES_CACHE = json.load(f)
+        except Exception as e:
+            print(f"CRITICAL: Failed to load boundaries: {e}")
+            BOUNDARIES_CACHE = { "type": "FeatureCollection", "features": [] }
+            
+    return BOUNDARIES_CACHE
 
 @app.get("/api/macro", response_model=MacroResponse)
-def get_macro_data(session: Session = Depends(get_session)):
+async def get_macro_data():
     """
     Get aggregated data for Regional Macro View.
-    Cached for 5 minutes to improve performance on large datasets.
+    Cached for 5 minutes to improve performance.
     """
     current_time = time.time()
     
@@ -66,19 +79,8 @@ def get_macro_data(session: Session = Depends(get_session)):
     if MACRO_CACHE["data"] and current_time < MACRO_CACHE["expiry"]:
         return MACRO_CACHE["data"]
 
-    
-    # Eager load all relationships to prevent N+1 queries during iteration
-    query = select(Village).options(
-        selectinload(Village.health),
-        selectinload(Village.education),
-        selectinload(Village.economy),
-        selectinload(Village.infrastructure),
-        selectinload(Village.digital),
-        selectinload(Village.disaster),
-        selectinload(Village.disease),
-        selectinload(Village.criminal)
-    )
-    villages = session.exec(query).all()
+    # Fetch all villages with embedded documents
+    villages = await Village.find_all().to_list()
     results = []
     
     for v in villages:
@@ -99,7 +101,10 @@ def get_macro_data(session: Session = Depends(get_session)):
             digital=v.digital,
             disaster=v.disaster,
             disease=v.disease,
-            criminal=v.criminal
+            criminal=v.criminal,
+            social=v.social,
+            security=v.security,
+            sanitasi=v.sanitasi
         ))
         
     response = MacroResponse(data=results)
@@ -111,11 +116,11 @@ def get_macro_data(session: Session = Depends(get_session)):
     return response
 
 @app.get("/api/micro/{village_id}", response_model=MicroResponse)
-def get_micro_data(village_id: str, session: Session = Depends(get_session)):
+async def get_micro_data(village_id: str):
     """
     Get detailed profile for a specific village, including AI Insights.
     """
-    village = session.get(Village, village_id)
+    village = await Village.get(village_id)
     if not village:
         raise HTTPException(status_code=404, detail="Village not found")
         
@@ -128,7 +133,7 @@ def get_micro_data(village_id: str, session: Session = Depends(get_session)):
     ai_data = None
     if village.ai_analysis:
         aa = village.ai_analysis
-        # Handle potential None or empty JSONB
+        # Handle potential None or empty dict
         swot_raw = aa.swot_analysis or {}
         # Ensure strict typing
         swot = AISwot(
@@ -157,11 +162,9 @@ def get_micro_data(village_id: str, session: Session = Depends(get_session)):
         longitude=float(village.longitude),
         demographics={
             # Placeholders or mapped from columns not yet strictly defined 
-            # In real app, map these from population columns if they exist
             "population": "N/A" 
         },
         stats={
-            # Use new columns 'jumlah_dokter' (was doctors)
             "doctors": village.health.jumlah_dokter if village.health else 0,
             "schools": village.education.sd_counts if village.education else 0,
             "markets": village.economy.markets if village.economy else 0,
@@ -200,7 +203,7 @@ def haversine(lat1, lon1, lat2, lon2):
     return d
 
 @app.get("/api/nearest-village")
-def get_nearest_village(lat: float, long: float, session: Session = Depends(get_session)):
+async def get_nearest_village(lat: float, long: float):
     """
     Find the village for a given coordinate. 
     Uses High-Accuracy Polygon lookup (Geofencing) first, 
@@ -233,8 +236,8 @@ def get_nearest_village(lat: float, long: float, session: Session = Depends(get_
     print("DEBUG: Fuzzy MISS. Falling back to Haversine Centroid.")
 
     # 3. Fallback to Nearest Centroid (Haversine)
-    query = select(Village)
-    villages = session.exec(query).all()
+    # Fetch all villages (cached/fast since few hundred docs)
+    villages = await Village.find_all().to_list()
     
     if not villages:
         raise HTTPException(status_code=404, detail="No villages found")
