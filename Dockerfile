@@ -24,5 +24,5 @@ COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
 # Expose port
 EXPOSE 8000
 
-# Start command
-CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Start command (using shell form for variable expansion)
+CMD uvicorn backend.main:app --host 0.0.0.0 --port $PORT
