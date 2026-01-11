@@ -11,8 +11,7 @@
                 "setup": {
                     "nixPkgs": [
                         "python3",
-                        "nodejs_20",
-                        "npm"
+                        "nodejs_20"
                     ]
                 },
                 "build": {
