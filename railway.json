@@ -2,25 +2,7 @@
     "$schema": "https://railway.app/railway.schema.json",
     "build": {
         "builder": "NIXPACKS",
-        "nixpacksPlan": {
-            "providers": [
-                "python",
-                "node"
-            ],
-            "phases": {
-                "setup": {
-                    "nixPkgs": [
-                        "python3",
-                        "nodejs_20"
-                    ]
-                },
-                "build": {
-                    "cmds": [
-                        "cd frontend && npm install && npm run build"
-                    ]
-                }
-            }
-        }
+        "buildCommand": "cd frontend && npm install && npm run build"
     },
     "deploy": {
         "startCommand": "uvicorn backend.main:app --host 0.0.0.0 --port $PORT",
