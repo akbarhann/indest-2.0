@@ -300,10 +300,18 @@ try:
 except Exception:
     pass 
 
+# Get absolute path for frontend dist
+import pathlib
+FRONTEND_DIST = pathlib.Path(__file__).parent.parent / "frontend" / "dist"
+
+
 # Serve Root (Index.html) explicitly
 @app.get("/")
 async def read_root():
-    return FileResponse("frontend/dist/index.html")
+    index_path = FRONTEND_DIST / "index.html"
+    if index_path.exists():
+        return FileResponse(str(index_path))
+    return {"error": "Frontend not built", "path": str(FRONTEND_DIST)}
 
 # Serve Root (Index.html) for all non-api routes (SPA Support)
 # This MUST be the last route defined to avoid capturing API calls
@@ -314,9 +322,12 @@ async def serve_react_app(full_path: str):
          raise HTTPException(status_code=404, detail="API Endpoint not found")
     
     # Check if specific file exists in dist (e.g. favicon.ico)
-    file_path = os.path.join("frontend", "dist", full_path)
-    if os.path.exists(file_path) and os.path.isfile(file_path):
-        return FileResponse(file_path)
+    file_path = FRONTEND_DIST / full_path
+    if file_path.exists() and file_path.is_file():
+        return FileResponse(str(file_path))
 
     # Fallback to index.html for React Router
-    return FileResponse("frontend/dist/index.html")
+    index_path = FRONTEND_DIST / "index.html"
+    if index_path.exists():
+        return FileResponse(str(index_path))
+    return {"error": "Frontend not built", "path": str(FRONTEND_DIST)}
