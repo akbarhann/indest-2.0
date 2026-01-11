@@ -43,7 +43,8 @@ function App() {
             return;
         }
 
-        const backendUrl = `http://${window.location.hostname}:8000`;
+        // Use relative URL in production, localhost:8000 in dev
+        const backendUrl = import.meta.env.DEV ? `http://${window.location.hostname}:8000` : '';
 
         setLocationStatus({ status: 'locating', message: 'Mencari lokasi...' });
         console.log("Requesting location...");
@@ -131,7 +132,8 @@ function App() {
             message: 'Pinned on map'
         });
 
-        const backendUrl = `http://${window.location.hostname}:8000`;
+        // Use relative URL in production
+        const backendUrl = import.meta.env.DEV ? `http://${window.location.hostname}:8000` : '';
         try {
             const res = await axios.get(`${backendUrl}/api/nearest-village?lat=${lat}&long=${lng}`);
             if (res.data?.id) {
