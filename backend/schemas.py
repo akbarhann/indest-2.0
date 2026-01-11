@@ -28,6 +28,7 @@ class VillageMacro(BaseModel):
     district: str
     latitude: float
     longitude: float
+    topography: Optional[str] = None
     health_radar: HealthRadar
     education_funnel: EducationFunnel
     # Expanded fields for Macro View filters & charts

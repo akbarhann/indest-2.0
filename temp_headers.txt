@@ -1,9 +1,0 @@
-Jumlah penyandang tuna netra (buta)
-Jumlah penyandang tuna rungu (tuli)
-Jumlah penyandang tuna wicara (bisu)
-Jumlah penyandang tuna rungu-wicara (tuli-bisu)
-Jumlah penyandang tuna daksa (disabilitas tubuh) : kelumpuhan/kelainan/ketidaklengkapan anggota gerak
-Jumlah penyandang tuna grahita (keterbelakangan mental)
-Jumlah penyandang tuna laras (eks-sakit jiwa, mengalami hambatan/gangguan dalam mengendalikan emosi dan kontrol sosial)
-Jumlah penyandang tuna eks-sakit kusta : pernah mengalami sakit kusta dan telah dinyatakan sembuh oleh dokter
-Jumlah penyandang tuna ganda (fisik-mental): fisik(buta, tuli, bisu, bisu-tuli atau tubuh) dan mental (tunagrahita atau tunalaras)

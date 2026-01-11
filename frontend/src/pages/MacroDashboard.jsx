@@ -8,7 +8,8 @@ import {
 } from 'recharts';
 import {
     Activity, Signal, TrendingUp, AlertTriangle, Map as MapIcon,
-    Zap, ShoppingBag, Eye, HeartPulse, ArrowRight
+    Zap, ShoppingBag, Eye, HeartPulse, ArrowRight, Mountain, Home, Droplets, Waves,
+    CloudRain, CloudOff, AlertCircle
 } from 'lucide-react';
 import clsx from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -103,7 +104,7 @@ const MacroDashboard = ({ onSelectVillage, userLocation, onManualUpdate }) => {
     const [boundaries, setBoundaries] = useState(cachedBoundaries);
     const [showBoundaries, setShowBoundaries] = useState(true);
     const [loading, setLoading] = useState(true);
-    const [lens, setLens] = useState('risk'); // 'risk' | 'digital' | 'economy'
+    const [lens, setLens] = useState('risk'); // 'risk' | 'digital' | 'economy' | 'topography'
 
     // Fetch Data
     useEffect(() => {
@@ -154,7 +155,7 @@ const MacroDashboard = ({ onSelectVillage, userLocation, onManualUpdate }) => {
             connectivity: Math.round((villages.filter(v => (v.digital?.village_information_system || '').toLowerCase().includes('ada')).length / villages.length) * 100),
             connectDetails: [
                 { label: 'Sinyal Kuat', value: villages.filter(v => (v.digital?.signal_strength || '').toLowerCase().includes('kuat')).length },
-                { label: 'Total BTS', value: sum('digital.bts_count') }
+                { label: 'Sinyal Lemah', value: villages.filter(v => (v.digital?.signal_strength || '').toLowerCase().includes('lemah')).length }
             ],
 
             economicPower: sum('economy.markets') + sum('economy.bumdes'),
@@ -169,9 +170,82 @@ const MacroDashboard = ({ onSelectVillage, userLocation, onManualUpdate }) => {
                 { label: 'Demam Berdarah', value: sum('disease.dbd_cases') },
                 { label: 'Muntaber', value: sum('disease.muntaber_cases') },
                 { label: 'Malaria', value: sum('disease.malaria_cases') }
-            ]
+            ],
+
+            // Topography Dominance
+            topographyDominance: (() => {
+                const total = villages.length;
+                if (!total) return "N/A";
+                const dataran = villages.filter(v => (v.topography || '').toLowerCase().includes('dataran')).length;
+                const percent = Math.round((dataran / total) * 100);
+                return `${percent}% Dataran`;
+            })(),
+            topographyDetails: (() => {
+                const total = villages.length;
+                if (!total) return [];
+                const dataran = villages.filter(v => (v.topography || '').toLowerCase().includes('dataran')).length;
+                const lereng = villages.filter(v => (v.topography || '').toLowerCase().includes('lereng')).length;
+                const puncak = villages.filter(v => (v.topography || '').toLowerCase().includes('puncak')).length;
+
+                return [
+                    { label: 'Dataran', value: `${Math.round((dataran / total) * 100)}%` },
+                    { label: 'Lereng', value: `${Math.round((lereng / total) * 100)}%` },
+                    { label: 'Puncak', value: `${Math.round((puncak / total) * 100)}%` }
+                ];
+            })(),
+
+            totalVillages: villages.length,
+
+            // Water KPIs
+            waterStats: (() => {
+                const total = villages.length;
+                if (!total) return { count: 0, details: [] };
+
+                // "Sumber air minum sebagian besar keluarga selain air isi ulang dan air kemasan bermerek"
+                // Logic: Filter OUT 'isi ulang', 'kemasan', 'botol', 'bermerek'
+                const naturalWaterVillages = villages.filter(v => {
+                    const src = (v.infrastructure?.water_drink_source || '').toLowerCase();
+                    const isPackaged = src.includes('isi ulang') || src.includes('kemasan') || src.includes('botol') || src.includes('bermerek');
+                    return !isPackaged;
+                });
+
+                // Detailed Breakdown for the Narrative
+                const sumur = naturalWaterVillages.filter(v => (v.infrastructure?.water_drink_source || '').toLowerCase().includes('sumur')).length;
+                const hujan = naturalWaterVillages.filter(v => (v.infrastructure?.water_drink_source || '').toLowerCase().includes('hujan')).length;
+                const mataAir = naturalWaterVillages.filter(v => (v.infrastructure?.water_drink_source || '').toLowerCase().includes('mata air')).length;
+                const sungai = naturalWaterVillages.filter(v => (v.infrastructure?.water_drink_source || '').toLowerCase().includes('sungai')).length;
+
+                return {
+                    count: naturalWaterVillages.length,
+                    details: [
+                        { label: 'Sumur', value: sumur },
+                        { label: 'Mata Air', value: mataAir },
+                        { label: 'Air Hujan', value: hujan },
+                        { label: 'Sungai/Lainnya', value: sungai }
+                    ].filter(d => d.value > 0) // Only show relevant
+                };
+            })(),
+
+
+            disasterStats: (() => {
+                // Strict check: must be exactly 'ada' after trim/lowercase
+                const countRisk = (field) => villages.filter(v => {
+                    const val = (v.disaster?.[field] || '').trim().toLowerCase();
+                    return val === 'ada';
+                }).length;
+
+                return {
+                    flood: countRisk('flood_exist'),
+                    flash_flood: countRisk('flash_flood_exist'),
+                    landslide: countRisk('landslide_exist'),
+                    drought: countRisk('drought_exist')
+                };
+            })()
         };
     }, [villages]);
+
+    // Disaster Incidents
+
 
     // --- View Logic (Smart Lenses) ---
     const getMarkerStyle = (v) => {
@@ -185,10 +259,47 @@ const MacroDashboard = ({ onSelectVillage, userLocation, onManualUpdate }) => {
             const hasSystem = (v.digital?.village_information_system || '').toLowerCase().includes('ada');
             return { color: hasSystem ? '#10B981' : '#F59E0B', radius: hasSystem ? 6 : 4 };
         }
+        // New Disaster Lenses - Strict Check
+        const checkRisk = (val) => (val || '').trim().toLowerCase() === 'ada';
+
+        if (lens === 'flood') {
+            const isProne = checkRisk(v.disaster?.flood_exist) || checkRisk(v.disaster?.flash_flood_exist);
+            return { color: isProne ? '#EF4444' : '#E5E7EB', radius: isProne ? 6 : 3 };
+        }
+        if (lens === 'landslide') {
+            const isProne = checkRisk(v.disaster?.landslide_exist);
+            return { color: isProne ? '#D97706' : '#E5E7EB', radius: isProne ? 6 : 3 };
+        }
+        if (lens === 'drought') {
+            const isProne = checkRisk(v.disaster?.drought_exist);
+            return { color: isProne ? '#F59E0B' : '#E5E7EB', radius: isProne ? 6 : 3 };
+        }
         if (lens === 'economy') {
             // Biru jika ada pasar/bumdes
             const hasEconomy = (v.economy?.markets > 0) || (v.economy?.bumdes > 0);
             return { color: hasEconomy ? '#3B82F6' : '#9CA3AF', radius: hasEconomy ? 6 : 3 };
+        }
+        if (lens === 'topography') {
+            const t = (v.topography || '').toLowerCase();
+            if (t.includes('dataran')) return { color: '#10B981', radius: 5 }; // Green
+            if (t.includes('lereng')) return { color: '#F59E0B', radius: 5 }; // Orange
+            if (t.includes('puncak')) return { color: '#8B5CF6', radius: 6 }; // Purple
+            return { color: '#6B7280', radius: 4 }; // Gray unknown
+        }
+        // Water Source Lens - 5 Categories
+        if (lens === 'water') {
+            const source = (v.infrastructure?.water_drink_source || '').toLowerCase();
+            // Sumur (includes "sumur" and "sumur bor atau pompa")
+            if (source.includes('sumur')) return { color: '#3B82F6', radius: 5 }; // Blue
+            // Air Hujan
+            if (source.includes('hujan')) return { color: '#06B6D4', radius: 5 }; // Cyan
+            // Mata Air
+            if (source.includes('mata air')) return { color: '#10B981', radius: 5 }; // Green
+            // PDAM (includes "ledeng dengan meteran" and "ledeng tanpa meteran")
+            if (source.includes('ledeng') || source.includes('pdam') || source.includes('pam')) return { color: '#8B5CF6', radius: 5 }; // Purple
+            // Kemasan (includes "air isi ulang" and "air kemasan bermerek")
+            if (source.includes('isi ulang') || source.includes('kemasan')) return { color: '#F59E0B', radius: 5 }; // Amber
+            return { color: '#9CA3AF', radius: 4 }; // Gray - Unknown
         }
         return { color: '#6B7280', radius: 4 };
     };
@@ -227,7 +338,35 @@ const MacroDashboard = ({ onSelectVillage, userLocation, onManualUpdate }) => {
         ];
     }, [villages]);
 
+    // --- Industry by District Data (for Stacked Bar Chart) ---
+    const industryByDistrictData = useMemo(() => {
+        const districtMap = {};
+
+        villages.forEach(v => {
+            const district = v.district || 'Unknown';
+            if (!districtMap[district]) {
+                districtMap[district] = {
+                    name: district,
+                    galian: 0,
+                    kertas: 0,
+                    percetakan: 0,
+                    makanan: 0
+                };
+            }
+            districtMap[district].galian += v.economy?.non_metallic_mining_industry || 0;
+            districtMap[district].kertas += v.economy?.paper_and_pulp_industry || 0;
+            districtMap[district].percetakan += v.economy?.printing_industry || 0;
+            // Use eatery + restaurant as proxy for food industry
+            districtMap[district].makanan += (v.economy?.eatery || 0) + (v.economy?.restaurant || 0);
+        });
+
+        // Sort by total industries descending
+        return Object.values(districtMap)
+            .sort((a, b) => (b.galian + b.kertas + b.percetakan + b.makanan) - (a.galian + a.kertas + a.percetakan + a.makanan));
+    }, [villages]);
+
     const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'];
+    const INDUSTRY_COLORS = { galian: '#6366F1', kertas: '#10B981', percetakan: '#F59E0B', makanan: '#EF4444' };
 
     if (loading) return <div className="p-20 flex justify-center"><div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full"></div></div>;
 
@@ -244,26 +383,32 @@ const MacroDashboard = ({ onSelectVillage, userLocation, onManualUpdate }) => {
                 </div>
             </div>
 
-            {/* KPI Ticker */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {/* Row 1: Core Metrics - 4 columns */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <StatCard
+                    title="Total Desa"
+                    value={kpi.totalVillages}
+                    label="Wilayah Terdaftar"
+                    icon={Home}
+                    color="bg-indigo-500"
+                    delay="animate-fade-in-up delay-100"
+                />
                 <StatCard
                     title="Populasi Berisiko"
                     value={kpi.popRisk}
                     label="Warga Rentan"
                     icon={HeartPulse}
-
                     color="bg-red-500"
-                    delay="animate-fade-in-up delay-100"
+                    delay="animate-fade-in-up delay-200"
                     details={kpi.popDetails}
                 />
                 <StatCard
-                    title="Digital Index"
+                    title="Koneksi Internet"
                     value={`${kpi.connectivity}%`}
-                    label="Connected Villages"
+                    label="Desa Terkoneksi"
                     icon={Signal}
-
                     color="bg-blue-500"
-                    delay="animate-fade-in-up delay-200"
+                    delay="animate-fade-in-up delay-300"
                     details={kpi.connectDetails}
                 />
                 <StatCard
@@ -271,24 +416,106 @@ const MacroDashboard = ({ onSelectVillage, userLocation, onManualUpdate }) => {
                     value={kpi.economicPower}
                     label="Active Markets & BUMDes"
                     icon={ShoppingBag}
-
                     color="bg-emerald-500"
-                    delay="animate-fade-in-up delay-300"
+                    delay="animate-fade-in-up delay-400"
                     details={kpi.ecoDetails}
                 />
-                <StatCard
-                    title="Health Alert"
-                    value={kpi.healthAlert}
-                    label="Active Cases (DBD/Malaria)"
-                    icon={AlertTriangle}
+            </div >
 
-                    color="bg-orange-500"
-                    delay="animate-fade-in-up delay-400"
-                    details={kpi.healthDetails}
+            {/* Row 2: Environment & Infrastructure - 3 columns */}
+            < div className="grid grid-cols-1 sm:grid-cols-3 gap-4" >
+                <StatCard
+                    title="Dominasi Topografi"
+                    value={kpi.topographyDominance}
+                    label="Distribusi Wilayah"
+                    icon={Mountain}
+                    color="bg-purple-500"
+                    delay="animate-fade-in-up delay-500"
+                    details={kpi.topographyDetails}
                 />
+                <StatCard
+                    title="Air Minum Non-Kemasan"
+                    value={kpi.waterStats.count}
+                    label="Desa dengan Sumber Alami"
+                    icon={Droplets}
+                    color="bg-cyan-500"
+                    delay="animate-fade-in-up delay-600"
+                    details={kpi.waterStats.details}
+                />
+                <div className="hidden sm:block"></div> {/* Spacer for visual balance */}
+            </div >
+
+            {/* Row 3: Disaster Risks - 4 columns with section header */}
+            < div className="space-y-3" >
+                <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                    <AlertTriangle size={16} className="text-orange-500" />
+                    Potensi Kerawanan Bencana
+                </h3>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    <StatCard
+                        title="Rawan Banjir"
+                        value={kpi.disasterStats.flood}
+                        label="Desa Berpotensi"
+                        icon={CloudRain}
+                        color="bg-blue-600"
+                        delay="animate-fade-in-up delay-700"
+                    />
+                    <StatCard
+                        title="Banjir Bandang"
+                        value={kpi.disasterStats.flash_flood}
+                        label="Desa Berpotensi"
+                        icon={Waves}
+                        color="bg-red-600"
+                        delay="animate-fade-in-up delay-800"
+                    />
+                    <StatCard
+                        title="Rawan Longsor"
+                        value={kpi.disasterStats.landslide}
+                        label="Desa Berpotensi"
+                        icon={AlertCircle}
+                        color="bg-amber-600"
+                        delay="animate-fade-in-up delay-900"
+                    />
+                    <StatCard
+                        title="Rawan Kekeringan"
+                        value={kpi.disasterStats.drought}
+                        label="Desa Berpotensi"
+                        icon={CloudOff}
+                        color="bg-orange-500"
+                        delay="animate-fade-in-up delay-1000"
+                    />
+                </div>
+            </div >
+
+            {/* Industry by Kecamatan - Stacked Bar Chart */}
+            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
+                    <ShoppingBag size={20} className="text-indigo-500" />
+                    Spesialisasi Industri Kecil/Mikro per Kecamatan
+                </h3>
+                <div className="flex flex-wrap gap-4 mb-4 text-xs">
+                    <div className="flex items-center gap-2"><div className="w-3 h-3 rounded" style={{ backgroundColor: INDUSTRY_COLORS.galian }}></div> Galian</div>
+                    <div className="flex items-center gap-2"><div className="w-3 h-3 rounded" style={{ backgroundColor: INDUSTRY_COLORS.kertas }}></div> Kertas</div>
+                    <div className="flex items-center gap-2"><div className="w-3 h-3 rounded" style={{ backgroundColor: INDUSTRY_COLORS.percetakan }}></div> Percetakan</div>
+                    <div className="flex items-center gap-2"><div className="w-3 h-3 rounded" style={{ backgroundColor: INDUSTRY_COLORS.makanan }}></div> Makanan/Minuman</div>
+                </div>
+                <ResponsiveContainer width="100%" height={500}>
+                    <BarChart data={industryByDistrictData} layout="vertical" margin={{ left: 80, right: 20, top: 10, bottom: 10 }}>
+                        <XAxis type="number" tick={{ fontSize: 11 }} />
+                        <YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} width={75} />
+                        <Tooltip
+                            contentStyle={{ backgroundColor: 'rgba(255,255,255,0.95)', borderRadius: '8px', border: '1px solid #e5e7eb' }}
+                            formatter={(value, name) => [value, name.charAt(0).toUpperCase() + name.slice(1)]}
+                        />
+                        <Bar dataKey="galian" stackId="a" fill={INDUSTRY_COLORS.galian} />
+                        <Bar dataKey="kertas" stackId="a" fill={INDUSTRY_COLORS.kertas} />
+                        <Bar dataKey="percetakan" stackId="a" fill={INDUSTRY_COLORS.percetakan} />
+                        <Bar dataKey="makanan" stackId="a" fill={INDUSTRY_COLORS.makanan} radius={[0, 4, 4, 0]} />
+                    </BarChart>
+                </ResponsiveContainer>
             </div>
 
-            {/* 2. Interactive Map Centerpiece */}
+
             < div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[500px]" >
                 <div className="lg:col-span-3 bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden relative group">
                     {/* Map Filters & Legend (Top Right) */}
@@ -316,6 +543,41 @@ const MacroDashboard = ({ onSelectVillage, userLocation, onManualUpdate }) => {
                                 label="Ekonomi"
                                 colorClass="bg-emerald-500 ring-emerald-500"
                             />
+                            <LensButton
+                                active={lens === 'topography'}
+                                onClick={() => setLens('topography')}
+                                icon={Mountain}
+                                label="Topografi"
+                                colorClass="bg-purple-500 ring-purple-500"
+                            />
+                            <LensButton
+                                active={lens === 'flood'}
+                                onClick={() => setLens('flood')}
+                                icon={CloudRain}
+                                label="Banjir"
+                                colorClass="bg-red-500 ring-red-500"
+                            />
+                            <LensButton
+                                active={lens === 'landslide'}
+                                onClick={() => setLens('landslide')}
+                                icon={AlertCircle}
+                                label="Longsor"
+                                colorClass="bg-amber-600 ring-amber-600"
+                            />
+                            <LensButton
+                                active={lens === 'drought'}
+                                onClick={() => setLens('drought')}
+                                icon={CloudOff}
+                                label="Kekeringan"
+                                colorClass="bg-orange-500 ring-orange-500"
+                            />
+                            <LensButton
+                                active={lens === 'water'}
+                                onClick={() => setLens('water')}
+                                icon={Droplets}
+                                label="Air Minum"
+                                colorClass="bg-cyan-500 ring-cyan-500"
+                            />
                         </div>
 
                         {/* Dynamic Legend */}
@@ -337,6 +599,40 @@ const MacroDashboard = ({ onSelectVillage, userLocation, onManualUpdate }) => {
                                 <>
                                     <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-blue-500"></div> Ada Pasar/BUMDes</div>
                                     <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-gray-400"></div> Tertinggal</div>
+                                </>
+                            )}
+                            {lens === 'topography' && (
+                                <>
+                                    <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-emerald-500"></div> Dataran</div>
+                                    <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-amber-500"></div> Lereng</div>
+                                    <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-purple-500"></div> Puncak</div>
+                                </>
+                            )}
+                            {lens === 'flood' && (
+                                <>
+                                    <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-red-500"></div> Rawan Banjir</div>
+                                    <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-gray-200 border border-gray-400"></div> Aman</div>
+                                </>
+                            )}
+                            {lens === 'landslide' && (
+                                <>
+                                    <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-amber-600"></div> Rawan Longsor</div>
+                                    <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-gray-200 border border-gray-400"></div> Aman</div>
+                                </>
+                            )}
+                            {lens === 'drought' && (
+                                <>
+                                    <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-orange-500"></div> Rawan Kekeringan</div>
+                                    <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-gray-200 border border-gray-400"></div> Aman</div>
+                                </>
+                            )}
+                            {lens === 'water' && (
+                                <>
+                                    <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-blue-500"></div> Sumur</div>
+                                    <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-cyan-500"></div> Air Hujan</div>
+                                    <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-emerald-500"></div> Mata Air</div>
+                                    <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-purple-500"></div> PDAM/Ledeng</div>
+                                    <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-amber-500"></div> Kemasan</div>
                                 </>
                             )}
                         </div>
@@ -460,7 +756,7 @@ const MacroDashboard = ({ onSelectVillage, userLocation, onManualUpdate }) => {
             {/* 3. Section: Wall of Shame & Fame (Leaderboards) */}
             < div className="grid grid-cols-1 lg:grid-cols-2 gap-6" >
                 {/* Wall of Shame (Risk) */}
-                <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-red-100 dark:border-red-900/30 overflow-hidden">
+                < div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-red-100 dark:border-red-900/30 overflow-hidden" >
                     <div className="px-6 py-4 border-b border-red-50 dark:border-red-900/20 bg-red-50/30 dark:bg-red-900/10 flex justify-between items-center">
                         <div>
                             <h3 className="font-bold text-gray-800 dark:text-gray-100">Need Attention</h3>
@@ -500,7 +796,7 @@ const MacroDashboard = ({ onSelectVillage, userLocation, onManualUpdate }) => {
                 </div >
 
                 {/* Wall of Fame (Potential) */}
-                <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-emerald-100 dark:border-emerald-900/30 overflow-hidden">
+                < div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-emerald-100 dark:border-emerald-900/30 overflow-hidden" >
                     <div className="px-6 py-4 border-b border-emerald-50 dark:border-emerald-900/20 bg-emerald-50/30 dark:bg-emerald-900/10 flex justify-between items-center">
                         <div>
                             <h3 className="font-bold text-gray-800 dark:text-gray-100">Top Potentials</h3>
@@ -541,15 +837,15 @@ const MacroDashboard = ({ onSelectVillage, userLocation, onManualUpdate }) => {
             < div className="grid grid-cols-1 md:grid-cols-2 gap-6" >
                 <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
                     <h3 className="font-bold text-gray-800 dark:text-gray-100 mb-4">Sumber Penghasilan Utama</h3>
-                    <div className="h-64">
+                    <div className="h-48">
                         <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
                                 <Pie
                                     data={incomeData}
                                     cx="50%"
                                     cy="50%"
-                                    innerRadius={60}
-                                    outerRadius={80}
+                                    innerRadius={50}
+                                    outerRadius={70}
                                     paddingAngle={5}
                                     dataKey="value"
                                 >
@@ -557,9 +853,19 @@ const MacroDashboard = ({ onSelectVillage, userLocation, onManualUpdate }) => {
                                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                     ))}
                                 </Pie>
-                                <Tooltip />
+                                <Tooltip formatter={(value, name, props) => [`${value} Desa`, props.payload.name]} />
                             </PieChart>
                         </ResponsiveContainer>
+                    </div>
+                    {/* Legend */}
+                    <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
+                        {incomeData.slice(0, 6).map((entry, index) => (
+                            <div key={index} className="flex items-center gap-2 truncate">
+                                <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: COLORS[index % COLORS.length] }}></div>
+                                <span className="truncate text-gray-600 dark:text-gray-400">{entry.name}</span>
+                                <span className="ml-auto font-semibold text-gray-800 dark:text-gray-200">{entry.value}</span>
+                            </div>
+                        ))}
                     </div>
                 </div>
 

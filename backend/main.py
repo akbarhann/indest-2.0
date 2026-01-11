@@ -111,6 +111,7 @@ async def get_macro_data():
             district=v.district,
             latitude=float(v.latitude) if v.latitude is not None else 0.0,
             longitude=float(v.longitude) if v.longitude is not None else 0.0,
+            topography=v.topography,
             health_radar=HealthRadar(**health),
             education_funnel=EducationFunnel(**edu),
             economy=v.economy,
