@@ -193,4 +193,31 @@ class Village(Document):
     sanitasi: Optional[Sanitasi] = None
 
     class Settings:
-        name = "villages" # Collection name
+        name = "villages"
+
+class VillageMacroProjection(BaseModel):
+    id: str = Field(alias="_id")
+    name: str
+    district: str
+    latitude: float = 0.0
+    longitude: float = 0.0
+    topography: Optional[str] = None
+    forest_location: Optional[str] = None
+    status: Optional[str] = None
+    
+    # Include all detailed stats needed for macro view calculations
+    health: Optional[Health] = None
+    education: Optional[Education] = None
+    economy: Optional[Economy] = None
+    infrastructure: Optional[Infrastructure] = None
+    digital: Optional[Digital] = None
+    disaster: Optional[Disaster] = None
+    disease: Optional[Disease] = None
+    criminal: Optional[Criminal] = None
+    social: Optional[Social] = None
+    security: Optional[Security] = None
+    sanitasi: Optional[Sanitasi] = None
+
+    class Settings:
+        name = "villages"
+        projection = {"ai_analysis": 0}

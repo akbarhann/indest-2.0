@@ -14,8 +14,15 @@ class GeofenceService:
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super(GeofenceService, cls).__new__(cls)
-            cls._instance._load_geojson()
+            # Lazy load: Do NOT load geojson on startup
+            cls._instance._loaded = False
         return cls._instance
+
+    def _ensure_loaded(self):
+        if self._loaded:
+            return
+        self._load_geojson()
+        self._loaded = True
 
     def _load_geojson(self):
         # Path relative to project root (usually where main.py runs)
@@ -65,6 +72,7 @@ class GeofenceService:
         """
         Detect if a point (lat, lon) falls within any defined village polygon.
         """
+        self._ensure_loaded()
         # Note: GeoJSON and Shapely use (Longitude, Latitude) order for Points
         point = Point(lon, lat)
         for feature in self._features:
@@ -80,6 +88,7 @@ class GeofenceService:
         Finds the nearest village polygon to the point, even if not inside.
         max_distance_deg: ~0.005 deg is roughly 500m.
         """
+        self._ensure_loaded()
         point = Point(lon, lat)
         nearest_feature = None
         min_dist = float('inf')

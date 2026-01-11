@@ -9,6 +9,12 @@ from beanie import init_beanie
 # Add the parent directory to sys.path to allow imports from backend
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from dotenv import load_dotenv
+
+# Load .env explicitly from backend directory
+env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "backend", ".env")
+load_dotenv(env_path)
+
 from backend.models import (
     Village, Health, Education, Economy, Infrastructure, Digital, Disaster, AIAnalysis, Disease, Criminal,
     Social, Security, Sanitasi

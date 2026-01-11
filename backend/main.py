@@ -1,8 +1,16 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
+from dotenv import load_dotenv
+import os
+
+# Load .env explicitly from backend directory
+# This fixes the issue where running from root ignores backend/.env
+env_path = os.path.join(os.path.dirname(__file__), ".env")
+load_dotenv(env_path)
 from typing import List
 from backend.database import init_db
-from backend.models import Village, AIAnalysis
+from backend.models import Village, AIAnalysis, VillageMacroProjection
 from backend.schemas import MacroResponse, MicroResponse, VillageMacro, VillageMicro, HealthRadar, EducationFunnel, IndependenceIndex, AIInsights, AISwot
 from backend.services.analytics import ScoringAlgorithm
 from backend.services.geofencing import geofence_service
@@ -21,6 +29,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 @app.on_event("startup")
 async def on_startup():
@@ -71,14 +81,23 @@ async def get_macro_data():
     Get aggregated data for Regional Macro View.
     Cached for 5 minutes to improve performance.
     """
+    start_time = time.time()
+    print("DEBUG request: /api/macro started")
+    
     current_time = time.time()
     
     # Check Cache
     if MACRO_CACHE["data"] and current_time < MACRO_CACHE["expiry"]:
+        print("DEBUG request: Serving from CACHE")
         return MACRO_CACHE["data"]
 
-    # Fetch all villages with embedded documents
-    villages = await Village.find_all().to_list()
+    # Fetch all villages with projection (exclude ai_analysis)
+    # Using a Pydantic model projection for type safety and speed
+    print("DEBUG request: Fetching from DB (Atlas)...")
+    t1 = time.time()
+    villages = await Village.find_all().project(VillageMacroProjection).to_list()
+    t2 = time.time()
+    print(f"DEBUG request: DB Fetch took {t2 - t1:.4f}s. Items: {len(villages)}")
     results = []
     
     for v in villages:
@@ -111,6 +130,7 @@ async def get_macro_data():
     MACRO_CACHE["data"] = response
     MACRO_CACHE["expiry"] = current_time + CACHE_DURATION
     
+    print(f"DEBUG request: Total processing took {time.time() - start_time:.4f}s")
     return response
 
 @app.get("/api/micro/{village_id}", response_model=MicroResponse)
