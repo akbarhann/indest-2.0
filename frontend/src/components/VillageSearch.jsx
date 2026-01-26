@@ -38,7 +38,7 @@ const VillageSearch = ({ onSelect, initialVillages = [], placeholder = "Cari Des
         setResults(filtered);
     }, [query, villages]);
 
-    // Handle outside click to close dropdown
+    // Handle outside click to close dropdown (supports touch devices)
     useEffect(() => {
         const handleClickOutside = (event) => {
             if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
@@ -46,7 +46,11 @@ const VillageSearch = ({ onSelect, initialVillages = [], placeholder = "Cari Des
             }
         };
         document.addEventListener("mousedown", handleClickOutside);
-        return () => document.removeEventListener("mousedown", handleClickOutside);
+        document.addEventListener("touchstart", handleClickOutside);
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+            document.removeEventListener("touchstart", handleClickOutside);
+        };
     }, []);
 
     const handleSelect = (village) => {

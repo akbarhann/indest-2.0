@@ -197,6 +197,7 @@ def migrate_data():
                     rural_solar_street_lights = row.get('Penerangan jalan desa dengan lampu tenaga surya', ''),
                     rural_main_street_lights = row.get('Penerangan di jalan utama desa/kelurahan', ''),
                     water_drink_source=row.get('Sumber air minum sebagian besar keluarga', ''),
+                    water_access_source = row.get()
                     cooking_fuel = row.get('Bahan bakar memasak sebagian besar keluarga', '')
                 )
                 session.add(infrastructure)

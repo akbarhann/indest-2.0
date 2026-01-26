@@ -137,7 +137,21 @@ const MacroDashboard = ({ onSelectVillage, userLocation, onManualUpdate }) => {
 
     // --- KPIs ---
     const kpi = useMemo(() => {
-        if (!villages.length) return {};
+        if (!villages.length) return {
+            popRisk: 0,
+            popDetails: [],
+            connectivity: 0,
+            connectDetails: [],
+            economicPower: 0,
+            ecoDetails: [],
+            healthAlert: 0,
+            healthDetails: [],
+            topographyDominance: "N/A",
+            topographyDetails: [],
+            totalVillages: 0,
+            waterStats: { count: 0, details: [] },
+            disasterStats: { flood: 0, flash_flood: 0, landslide: 0, drought: 0 }
+        };
 
         // Helper Sum
         const sum = (fieldPath) => villages.reduce((acc, v) => {
@@ -375,7 +389,7 @@ const MacroDashboard = ({ onSelectVillage, userLocation, onManualUpdate }) => {
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 px-1">
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-2">Pusat Komando Eksekutif</h1>
+                    <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-2">Dashboard Kabupaten Lamongan 2024</h1>
                     <p className="text-gray-500 dark:text-gray-400">Pemantauan situasi wilayah secara real-time.</p>
                 </div>
                 <div className="w-full md:w-72 z-50">

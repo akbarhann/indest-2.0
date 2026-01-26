@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import Layout from './components/Layout';
 import MacroDashboard from './pages/MacroDashboard'; // We will create this next
@@ -16,6 +16,9 @@ function App() {
         accuracy: null,
         message: ''
     });
+
+    // Flag to prevent geolocation from overwriting manual village selection
+    const hasAutoSelected = useRef(false);
 
     // Theme State
     const [theme, setTheme] = useState(() => {
@@ -70,7 +73,11 @@ function App() {
                 const res = await axios.get(`${backendUrl}/api/nearest-village?lat=${latitude}&long=${longitude}`);
                 if (res.data?.id) {
                     console.log(`Nearest Village: ${res.data.name} (${res.data.distance_km}km)`);
-                    setSelectedVillageId(res.data.id);
+                    // Only auto-select on the FIRST successful geolocation match
+                    if (!hasAutoSelected.current) {
+                        setSelectedVillageId(res.data.id);
+                        hasAutoSelected.current = true;
+                    }
                     const method = res.data.method === 'geofence' ? '' : ` (${res.data.distance_km}km)`;
                     setLocationStatus(prev => ({
                         ...prev,
