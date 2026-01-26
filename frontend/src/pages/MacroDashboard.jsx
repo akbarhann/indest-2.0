@@ -336,7 +336,7 @@ const MacroDashboard = ({ onSelectVillage, userLocation, onManualUpdate }) => {
 
     const topEconomyVillages = useMemo(() => {
         return [...villages]
-            .sort((a, b) => ((b.economy?.markets || 0) + (b.economy?.bumdes || 0)) - ((a.economy?.markets || 0) + (a.economy?.bumdes || 0)))
+            .sort((a, b) => (b.economy?.bumdes || 0) - (a.economy?.bumdes || 0))
             .slice(0, 5);
     }, [villages]);
 
@@ -833,7 +833,7 @@ const MacroDashboard = ({ onSelectVillage, userLocation, onManualUpdate }) => {
                             <thead className="text-xs text-gray-500 dark:text-gray-400 uppercase bg-gray-50 dark:bg-slate-700">
                                 <tr>
                                     <th className="px-6 py-3">Desa</th>
-                                    <th className="px-6 py-3 text-right">Markets + BUMDes</th>
+                                    <th className="px-6 py-3 text-right">BUMDes</th>
                                     <th className="px-6 py-3 text-right">Signal</th>
                                     <th className="px-6 py-3">Action</th>
                                 </tr>
@@ -842,7 +842,7 @@ const MacroDashboard = ({ onSelectVillage, userLocation, onManualUpdate }) => {
                                 {topEconomyVillages.map((v, i) => (
                                     <tr key={i} className="bg-white dark:bg-slate-800 border-b dark:border-gray-700 hover:bg-emerald-50/50 dark:hover:bg-emerald-900/20 transition">
                                         <td className="px-6 py-3 font-medium text-gray-900 dark:text-gray-100">{v.name}</td>
-                                        <td className="px-6 py-3 text-right font-bold text-emerald-600">{(v.economy?.markets || 0) + (v.economy?.bumdes || 0)}</td>
+                                        <td className="px-6 py-3 text-right font-bold text-emerald-600">{v.economy?.bumdes || 0}</td>
                                         <td className="px-6 py-3 text-right text-xs">
                                             {v.digital?.signal_strength || 'Unknown'}
                                         </td>
