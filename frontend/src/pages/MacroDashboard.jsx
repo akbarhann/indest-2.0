@@ -299,8 +299,8 @@ const MacroDashboard = ({ onSelectVillage, userLocation, onManualUpdate }) => {
         }
         if (lens === 'economy') {
             // Biru jika ada pasar/bumdes
-            const hasEconomy = (v.economy?.markets > 0) || (v.economy?.bumdes > 0);
-            return { color: hasEconomy ? '#3B82F6' : '#9CA3AF', radius: hasEconomy ? 6 : 3 };
+            const hasEconomy = (v.economy?.bumdes > 0);
+            return { color: hasEconomy ? '#3B82F6' : '#EF4444', radius: hasEconomy ? 6 : 5 };
         }
         if (lens === 'topography') {
             const t = (v.topography || '').toLowerCase();
@@ -620,8 +620,8 @@ const MacroDashboard = ({ onSelectVillage, userLocation, onManualUpdate }) => {
                             )}
                             {lens === 'economy' && (
                                 <>
-                                    <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-blue-500"></div> Ada Pasar/BUMDes</div>
-                                    <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-gray-400"></div> Tertinggal</div>
+                                    <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-blue-500"></div> Ada BUMDes</div>
+                                    <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-red-500"></div> Tidak memiliki BUMDes</div>
                                 </>
                             )}
                             {lens === 'topography' && (
