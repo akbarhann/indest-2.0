@@ -419,7 +419,7 @@ const MacroDashboard = ({ onSelectVillage, userLocation, onManualUpdate }) => {
                 <StatCard
                     title="Populasi Berisiko"
                     value={kpi.popRisk}
-                    label="Warga Rentan"
+                    label="Warga disabilitas"
                     icon={HeartPulse}
                     color="bg-red-500"
                     delay="animate-fade-in-up delay-200"
@@ -459,7 +459,7 @@ const MacroDashboard = ({ onSelectVillage, userLocation, onManualUpdate }) => {
                 <StatCard
                     title="Air Minum Non-Kemasan"
                     value={kpi.waterStats.count}
-                    label="Desa dengan Sumber Alami"
+                    label="Desa dengan Air Minum Non Galon/Kemasan"
                     icon={Droplets}
                     color="bg-cyan-500"
                     delay="animate-fade-in-up delay-600"
@@ -522,10 +522,10 @@ const MacroDashboard = ({ onSelectVillage, userLocation, onManualUpdate }) => {
                     <div className="flex items-center gap-2"><div className="w-3 h-3 rounded" style={{ backgroundColor: INDUSTRY_COLORS.percetakan }}></div> Percetakan</div>
                     <div className="flex items-center gap-2"><div className="w-3 h-3 rounded" style={{ backgroundColor: INDUSTRY_COLORS.makanan }}></div> Makanan/Minuman</div>
                 </div>
-                <ResponsiveContainer width="100%" height={500}>
+                <ResponsiveContainer width="100%" height={Math.max(500, industryByDistrictData.length * 30)}>
                     <BarChart data={industryByDistrictData} layout="vertical" margin={{ left: 80, right: 20, top: 10, bottom: 10 }}>
                         <XAxis type="number" tick={{ fontSize: 11 }} />
-                        <YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} width={75} />
+                        <YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} width={75} interval={0} />
                         <Tooltip
                             contentStyle={{ backgroundColor: 'rgba(255,255,255,0.95)', borderRadius: '8px', border: '1px solid #e5e7eb' }}
                             formatter={(value, name) => [value, name.charAt(0).toUpperCase() + name.slice(1)]}
@@ -608,13 +608,13 @@ const MacroDashboard = ({ onSelectVillage, userLocation, onManualUpdate }) => {
                             <span className="text-[10px] uppercase text-gray-400 font-bold mb-1">Legenda Warna</span>
                             {lens === 'risk' && (
                                 <>
-                                    <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-red-500"></div> Risiko Tinggi / Kasus</div>
+                                    <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-red-500"></div> Ada Kasus Penyakit</div>
                                     <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-emerald-500"></div> Zona Aman</div>
                                 </>
                             )}
                             {lens === 'digital' && (
                                 <>
-                                    <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-emerald-500"></div> Sistem Aktif</div>
+                                    <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-emerald-500"></div> Ada Sistem Informasi Desa</div>
                                     <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-amber-500"></div> Belum Ada</div>
                                 </>
                             )}
