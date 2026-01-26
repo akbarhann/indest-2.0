@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import axios from 'axios';
 import { MapContainer, TileLayer, CircleMarker, Popup, useMap, useMapEvents, Tooltip as LeafletTooltip, GeoJSON } from 'react-leaflet';
+import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import VillageSearch from '../components/VillageSearch';
 import {
@@ -22,9 +23,16 @@ function cn(...inputs) {
 // --- Component: Map Auto Center ---
 const AutoPan = ({ coords }) => {
     const map = useMap();
+    const lastPanTime = useRef(0);
+
     useEffect(() => {
         if (coords) {
-            map.flyTo([coords.lat, coords.lng], 14, { animate: true, duration: 1.5 });
+            const now = Date.now();
+            // Throttle updates: only pan if >10 mins have passed or it's the first time
+            if (now - lastPanTime.current > 10 * 60 * 1000) {
+                map.flyTo([coords.lat, coords.lng], 14, { animate: true, duration: 1.5 });
+                lastPanTime.current = now;
+            }
         }
     }, [coords, map]);
     return null;
@@ -172,11 +180,12 @@ const MacroDashboard = ({ onSelectVillage, userLocation, onManualUpdate }) => {
                 { label: 'Sinyal Lemah', value: villages.filter(v => (v.digital?.signal_strength || '').toLowerCase().includes('lemah')).length }
             ],
 
-            economicPower: sum('economy.markets') + sum('economy.bumdes'),
+            economicPower: sum('economy.markets') + sum('economy.bumdes') + sum('economy.cooperatives') + sum('economy.industries'),
             ecoDetails: [
                 { label: 'Pasar', value: sum('economy.markets') },
                 { label: 'BUMDes', value: sum('economy.bumdes') },
-                { label: 'Koperasi', value: sum('economy.cooperatives') }
+                { label: 'Koperasi', value: sum('economy.cooperatives') },
+                { label: 'Industri', value: sum('economy.industries') }
             ],
 
             healthAlert: sum('disease.infectious_cases'),
@@ -426,9 +435,9 @@ const MacroDashboard = ({ onSelectVillage, userLocation, onManualUpdate }) => {
                     details={kpi.connectDetails}
                 />
                 <StatCard
-                    title="Economic Power"
+                    title="Pilar Ekonomi"
                     value={kpi.economicPower}
-                    label="Active Markets & BUMDes"
+                    label="Unit Usaha & Industri"
                     icon={ShoppingBag}
                     color="bg-emerald-500"
                     delay="animate-fade-in-up delay-400"
@@ -540,7 +549,7 @@ const MacroDashboard = ({ onSelectVillage, userLocation, onManualUpdate }) => {
                                 active={lens === 'risk'}
                                 onClick={() => setLens('risk')}
                                 icon={AlertTriangle}
-                                label="Risiko"
+                                label="Penyakit"
                                 colorClass="bg-red-500 ring-red-500"
                             />
                             <LensButton
@@ -690,6 +699,7 @@ const MacroDashboard = ({ onSelectVillage, userLocation, onManualUpdate }) => {
                                 }}
                                 eventHandlers={{
                                     click: (e) => {
+                                        L.DomEvent.stopPropagation(e.originalEvent);
                                         const feature = e.propagatedFrom.feature;
                                         if (feature && feature.properties?.iddesa) {
                                             onSelectVillage(feature.properties.iddesa);
@@ -783,7 +793,7 @@ const MacroDashboard = ({ onSelectVillage, userLocation, onManualUpdate }) => {
                             <thead className="text-xs text-gray-500 dark:text-gray-400 uppercase bg-gray-50 dark:bg-slate-700">
                                 <tr>
                                     <th className="px-6 py-3">Desa</th>
-                                    <th className="px-6 py-3 text-right">Infectious Cases</th>
+                                    <th className="px-6 py-3 text-right">Kasus Penyakit</th>
                                     <th className="px-6 py-3 text-right">EWS Status</th>
                                     <th className="px-6 py-3">Action</th>
                                 </tr>
